@@ -1,0 +1,53 @@
+# ============================================
+# AOG Plot Manager — .gitignore
+# ============================================
+
+# ── .NET / C# ──────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.csproj.user
+project.lock.json
+TestResults/
+BenchmarkDotNet.Artifacts/
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+# ── PlatformIO / Teensy ────────────────────
+.pio/
+.pioenvs/
+.piolibdeps/
+.clang_complete
+.gcc-flags.json
+
+# ── IDE ────────────────────────────────────
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ─────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Local tools (installed by setup) ──────
+.tools/
+
+# ── Logs & data ────────────────────────────
+*.log
+logs/
+*.csv
+!tests/fixtures/**/*.csv
