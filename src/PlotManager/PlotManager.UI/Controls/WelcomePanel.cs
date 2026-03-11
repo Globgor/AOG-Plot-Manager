@@ -107,7 +107,6 @@ public sealed class WelcomePanel : UserControl
         if (_btnNew != null) return; // Already created
 
         int cx = Width / 2;
-        int buttonY = Height / 2 + 60;
 
         _btnNew = new Button
         {
@@ -138,7 +137,7 @@ public sealed class WelcomePanel : UserControl
         if (_btnNew == null || _btnLoad == null) return;
 
         int cx = Width / 2;
-        int buttonY = Height / 2 + 60;
+        int buttonY = Height / 2 + 100;
 
         _btnNew.Location = new Point(cx - _btnNew.Width / 2, buttonY);
         _btnLoad.Location = new Point(cx - _btnLoad.Width / 2, buttonY + 60);

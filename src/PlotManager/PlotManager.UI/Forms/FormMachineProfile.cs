@@ -78,7 +78,7 @@ public class FormMachineProfile : Form
     private void InitializeComponents()
     {
         Text = "⚙ Machine Profile — Профіль Обладнання";
-        Size = new System.Drawing.Size(900, 860);
+        Size = new System.Drawing.Size(900, 1000);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;

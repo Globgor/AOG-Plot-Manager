@@ -44,12 +44,13 @@ public sealed class ProfileStepPanel : UserControl
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 3,
+            RowCount = 4,
             Padding = new Padding(40, 30, 40, 20),
         };
-        container.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        container.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        container.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        container.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row 0: header
+        container.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row 1: summary card
+        container.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // Row 2: spacer
+        container.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row 3: buttons
 
         // ── Header ──
         var header = new Label
@@ -67,10 +68,11 @@ public sealed class ProfileStepPanel : UserControl
             "Профіль можна зберегти у файл та завантажити пізніше.");
         container.Controls.Add(subtitle, 0, 0);
 
-        // ── Summary card ──
+        // ── Summary card (auto-sized, appears right after header) ──
         _summaryCard = new Panel
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            AutoSize = true,
             Margin = new Padding(0, 12, 0, 12),
         };
         AppTheme.StyleCard(_summaryCard);
@@ -110,7 +112,7 @@ public sealed class ProfileStepPanel : UserControl
         btnNew.Margin = new Padding(12, 0, 0, 0);
         btnRow.Controls.Add(btnNew);
 
-        container.Controls.Add(btnRow, 0, 2);
+        container.Controls.Add(btnRow, 0, 3);
 
         Controls.Add(container);
     }
