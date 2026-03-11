@@ -27,12 +27,15 @@ public class NozzleDefinition
 
     /// <summary>
     /// Nominal flow rate at reference pressure (liters per minute).
-    /// This is the value from the nozzle datasheet.
+    /// Per ISO 10625, reference pressure is 300 kPa (2.76 bar / 40 PSI).
     /// </summary>
-    public double FlowRateLPerMinAtRef { get; set; } = 1.18;
+    public double FlowRateLPerMinAtRef { get; set; } = 1.14;
 
-    /// <summary>Reference pressure for the nominal flow rate (bar).</summary>
-    public double ReferencePressureBar { get; set; } = 3.0;
+    /// <summary>
+    /// Reference pressure for the nominal flow rate (bar).
+    /// ISO 10625 standard: 300 kPa = 2.76 bar ≈ 40 PSI.
+    /// </summary>
+    public double ReferencePressureBar { get; set; } = 2.76;
 
     /// <summary>Spray angle in degrees (e.g. 110).</summary>
     public int SprayAngleDegrees { get; set; } = 110;
@@ -124,7 +127,10 @@ public class NozzleCatalog
     public static NozzleCatalog LoadFromFile(string path) =>
         FromJson(File.ReadAllText(path));
 
-    /// <summary>Creates a default catalog with common slit and injector nozzles.</summary>
+    /// <summary>
+    /// Creates a default catalog with common slit and injector nozzles.
+    /// Flow rates are per ISO 10625 at 300 kPa (2.76 bar / 40 PSI).
+    /// </summary>
     public static NozzleCatalog CreateDefault()
     {
         return new NozzleCatalog
@@ -132,25 +138,30 @@ public class NozzleCatalog
             Nozzles = new List<NozzleDefinition>
             {
                 // ── Щілинні (Slit / flat-fan) — TeeJet XR series ──
-                new() { Model = "TeeJet XR 110-01", FlowRateLPerMinAtRef = 0.39, SprayAngleDegrees = 110, IsoColorCode = "Orange", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 6.0 },
-                new() { Model = "TeeJet XR 110-015", FlowRateLPerMinAtRef = 0.59, SprayAngleDegrees = 110, IsoColorCode = "Green", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 6.0 },
-                new() { Model = "TeeJet XR 110-02", FlowRateLPerMinAtRef = 0.79, SprayAngleDegrees = 110, IsoColorCode = "Green", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 6.0 },
-                new() { Model = "TeeJet XR 110-03", FlowRateLPerMinAtRef = 1.18, SprayAngleDegrees = 110, IsoColorCode = "Blue", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 6.0 },
-                new() { Model = "TeeJet XR 110-04", FlowRateLPerMinAtRef = 1.57, SprayAngleDegrees = 110, IsoColorCode = "Red", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 6.0 },
-                new() { Model = "TeeJet XR 110-05", FlowRateLPerMinAtRef = 1.96, SprayAngleDegrees = 110, IsoColorCode = "Brown", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 6.0 },
-                new() { Model = "TeeJet XR 110-06", FlowRateLPerMinAtRef = 2.36, SprayAngleDegrees = 110, IsoColorCode = "Grey", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 6.0 },
-                new() { Model = "TeeJet XR 110-08", FlowRateLPerMinAtRef = 3.14, SprayAngleDegrees = 110, IsoColorCode = "White", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 6.0 },
+                // Ref: TeeJet Catalog 51A-M, ISO 10625 colors
+                // Pressure range: 1.0–4.14 bar (15–60 PSI)
+                new() { Model = "TeeJet XR 110-01",  FlowRateLPerMinAtRef = 0.38, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Orange", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 4.14 },
+                new() { Model = "TeeJet XR 110-015", FlowRateLPerMinAtRef = 0.57, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Green",  Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 4.14 },
+                new() { Model = "TeeJet XR 110-02",  FlowRateLPerMinAtRef = 0.76, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Yellow", Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 4.14 },
+                new() { Model = "TeeJet XR 110-03",  FlowRateLPerMinAtRef = 1.14, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Blue",   Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 4.14 },
+                new() { Model = "TeeJet XR 110-04",  FlowRateLPerMinAtRef = 1.51, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Red",    Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 4.14 },
+                new() { Model = "TeeJet XR 110-05",  FlowRateLPerMinAtRef = 1.89, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Brown",  Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 4.14 },
+                new() { Model = "TeeJet XR 110-06",  FlowRateLPerMinAtRef = 2.27, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Grey",   Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 4.14 },
+                new() { Model = "TeeJet XR 110-08",  FlowRateLPerMinAtRef = 3.03, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "White",  Type = NozzleType.Slit, MinPressureBar = 1.0, MaxPressureBar = 4.14 },
 
                 // ── Інжекторні (Air-induction) — TeeJet AI series ──
-                new() { Model = "TeeJet AI 110-02", FlowRateLPerMinAtRef = 0.79, SprayAngleDegrees = 110, IsoColorCode = "Green", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Крупна крапля, антизносний" },
-                new() { Model = "TeeJet AI 110-03", FlowRateLPerMinAtRef = 1.18, SprayAngleDegrees = 110, IsoColorCode = "Blue", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Крупна крапля, антизносний" },
-                new() { Model = "TeeJet AI 110-04", FlowRateLPerMinAtRef = 1.57, SprayAngleDegrees = 110, IsoColorCode = "Red", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Крупна крапля, антизносний" },
-                new() { Model = "TeeJet AI 110-05", FlowRateLPerMinAtRef = 1.96, SprayAngleDegrees = 110, IsoColorCode = "Brown", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Крупна крапля, антизносний" },
+                // Same ISO flow rates, higher min pressure for air-induction
+                // Pressure range: 2.0–8.0 bar
+                new() { Model = "TeeJet AI 110-02", FlowRateLPerMinAtRef = 0.76, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Yellow", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Крупна крапля, антизносний" },
+                new() { Model = "TeeJet AI 110-03", FlowRateLPerMinAtRef = 1.14, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Blue",   Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Крупна крапля, антизносний" },
+                new() { Model = "TeeJet AI 110-04", FlowRateLPerMinAtRef = 1.51, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Red",    Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Крупна крапля, антизносний" },
+                new() { Model = "TeeJet AI 110-05", FlowRateLPerMinAtRef = 1.89, ReferencePressureBar = 2.76, SprayAngleDegrees = 110, IsoColorCode = "Brown",  Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Крупна крапля, антизносний" },
 
                 // ── Інжекторні — Lechler IDK series ──
-                new() { Model = "Lechler IDK 120-02", FlowRateLPerMinAtRef = 0.79, SprayAngleDegrees = 120, IsoColorCode = "Green", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Інжектор, 120° кут" },
-                new() { Model = "Lechler IDK 120-03", FlowRateLPerMinAtRef = 1.18, SprayAngleDegrees = 120, IsoColorCode = "Blue", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Інжектор, 120° кут" },
-                new() { Model = "Lechler IDK 120-04", FlowRateLPerMinAtRef = 1.57, SprayAngleDegrees = 120, IsoColorCode = "Red", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Інжектор, 120° кут" },
+                // 120° spray angle, similar flow rates to ISO sizes
+                new() { Model = "Lechler IDK 120-02", FlowRateLPerMinAtRef = 0.76, ReferencePressureBar = 2.76, SprayAngleDegrees = 120, IsoColorCode = "Yellow", Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Інжектор, 120° кут" },
+                new() { Model = "Lechler IDK 120-03", FlowRateLPerMinAtRef = 1.14, ReferencePressureBar = 2.76, SprayAngleDegrees = 120, IsoColorCode = "Blue",   Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Інжектор, 120° кут" },
+                new() { Model = "Lechler IDK 120-04", FlowRateLPerMinAtRef = 1.51, ReferencePressureBar = 2.76, SprayAngleDegrees = 120, IsoColorCode = "Red",    Type = NozzleType.Injector, MinPressureBar = 2.0, MaxPressureBar = 8.0, Notes = "Інжектор, 120° кут" },
             },
         };
     }

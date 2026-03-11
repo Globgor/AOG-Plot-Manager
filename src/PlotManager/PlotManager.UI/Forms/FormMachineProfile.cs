@@ -240,7 +240,7 @@ public class FormMachineProfile : Form
             {
                 Model = _cmbNozzle.Text,
                 FlowRateLPerMinAtRef = (double)_nudFlowRate.Value,
-                ReferencePressureBar = 3.0,
+                ReferencePressureBar = 2.76,
                 SprayAngleDegrees = (int)_nudSprayAngle.Value,
             };
 

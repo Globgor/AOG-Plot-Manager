@@ -18,12 +18,12 @@ public class TrialSystemTests
     {
         var nozzle = new NozzleDefinition
         {
-            FlowRateLPerMinAtRef = 1.18,
-            ReferencePressureBar = 3.0,
+            FlowRateLPerMinAtRef = 1.14,
+            ReferencePressureBar = 2.76,
         };
 
-        double flow = nozzle.GetFlowRateAtPressure(3.0);
-        Assert.Equal(1.18, flow, 3);
+        double flow = nozzle.GetFlowRateAtPressure(2.76);
+        Assert.Equal(1.14, flow, 3);
     }
 
     [Fact]
@@ -32,11 +32,11 @@ public class TrialSystemTests
         var nozzle = new NozzleDefinition
         {
             FlowRateLPerMinAtRef = 1.0,
-            ReferencePressureBar = 3.0,
+            ReferencePressureBar = 2.76,
         };
 
-        // At 6 bar: Q = 1.0 × √(6/3) = 1.0 × √2 ≈ 1.414
-        double flow = nozzle.GetFlowRateAtPressure(6.0);
+        // At 5.52 bar: Q = 1.0 × √(5.52/2.76) = 1.0 × √2 ≈ 1.414
+        double flow = nozzle.GetFlowRateAtPressure(5.52);
         Assert.InRange(flow, 1.41, 1.42);
     }
 
@@ -45,8 +45,8 @@ public class TrialSystemTests
     {
         var nozzle = new NozzleDefinition
         {
-            FlowRateLPerMinAtRef = 1.18,
-            ReferencePressureBar = 3.0,
+            FlowRateLPerMinAtRef = 1.14,
+            ReferencePressureBar = 2.76,
         };
 
         // Get flow at 4 bar
@@ -90,6 +90,7 @@ public class TrialSystemTests
         var found = catalog.FindByModel("TeeJet XR 110-03");
         Assert.NotNull(found);
         Assert.Equal("Blue", found.IsoColorCode);
+        Assert.Equal(2.76, found.ReferencePressureBar);
     }
 
     [Fact]
@@ -110,23 +111,23 @@ public class TrialSystemTests
     [Fact]
     public void Rate_Forward_XR11003_3bar_5kmh_2_8m()
     {
-        // TeeJet XR 110-03 @ 3 bar, 5 km/h, 2.8 m swath, 1 nozzle
-        // Q = 1.18 L/min, Rate = 1.18 × 600 / (5 × 2.8) = 708 / 14 = 50.57 L/ha
+        // TeeJet XR 110-03 @ 2.76 bar, 5 km/h, 2.8 m swath, 1 nozzle
+        // Q = 1.14 L/min, Rate = 1.14 × 600 / (5 × 2.8) = 684 / 14 = 48.86 L/ha
         var nozzle = new NozzleDefinition
         {
-            FlowRateLPerMinAtRef = 1.18,
-            ReferencePressureBar = 3.0,
+            FlowRateLPerMinAtRef = 1.14,
+            ReferencePressureBar = 2.76,
         };
 
-        double rate = RateCalculator.CalculateRateLPerHa(nozzle, 3.0, 5.0, 2.8);
-        Assert.InRange(rate, 50, 51); // ~50.57
+        double rate = RateCalculator.CalculateRateLPerHa(nozzle, 2.76, 5.0, 2.8);
+        Assert.InRange(rate, 48, 50); // ~48.86
     }
 
     [Fact]
     public void Rate_Forward_ZeroSpeed_ReturnsZero()
     {
-        var nozzle = new NozzleDefinition { FlowRateLPerMinAtRef = 1.18 };
-        Assert.Equal(0, RateCalculator.CalculateRateLPerHa(nozzle, 3.0, 0, 2.8));
+        var nozzle = new NozzleDefinition { FlowRateLPerMinAtRef = 1.14 };
+        Assert.Equal(0, RateCalculator.CalculateRateLPerHa(nozzle, 2.76, 0, 2.8));
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -136,15 +137,15 @@ public class TrialSystemTests
     [Fact]
     public void Rate_InverseSpeed_200LPerHa()
     {
-        // Want 200 L/ha with XR 110-03 @ 3 bar, 2.8 m swath
-        // V = Q × 600 / (R × B) = 1.18 × 600 / (200 × 2.8) = 708 / 560 ≈ 1.264 km/h
+        // Want 200 L/ha with XR 110-03 @ 2.76 bar, 2.8 m swath
+        // V = Q × 600 / (R × B) = 1.14 × 600 / (200 × 2.8) = 684 / 560 ≈ 1.221 km/h
         var nozzle = new NozzleDefinition
         {
-            FlowRateLPerMinAtRef = 1.18,
-            ReferencePressureBar = 3.0,
+            FlowRateLPerMinAtRef = 1.14,
+            ReferencePressureBar = 2.76,
         };
 
-        double speed = RateCalculator.CalculateSpeedKmh(nozzle, 3.0, 200, 2.8);
+        double speed = RateCalculator.CalculateSpeedKmh(nozzle, 2.76, 200, 2.8);
         Assert.InRange(speed, 1.2, 1.3);
     }
 
@@ -153,12 +154,12 @@ public class TrialSystemTests
     {
         var nozzle = new NozzleDefinition
         {
-            FlowRateLPerMinAtRef = 1.18,
-            ReferencePressureBar = 3.0,
+            FlowRateLPerMinAtRef = 1.14,
+            ReferencePressureBar = 2.76,
         };
 
-        double speed = RateCalculator.CalculateSpeedKmh(nozzle, 3.0, 200, 2.8);
-        double rateBack = RateCalculator.CalculateRateLPerHa(nozzle, 3.0, speed, 2.8);
+        double speed = RateCalculator.CalculateSpeedKmh(nozzle, 2.76, 200, 2.8);
+        double rateBack = RateCalculator.CalculateRateLPerHa(nozzle, 2.76, speed, 2.8);
 
         Assert.Equal(200, rateBack, 1);
     }
@@ -172,8 +173,8 @@ public class TrialSystemTests
     {
         var nozzle = new NozzleDefinition
         {
-            FlowRateLPerMinAtRef = 1.18,
-            ReferencePressureBar = 3.0,
+            FlowRateLPerMinAtRef = 1.14,
+            ReferencePressureBar = 2.76,
         };
 
         // Want 100 L/ha at 3 km/h, 2.8 m → what pressure?
@@ -193,10 +194,10 @@ public class TrialSystemTests
     {
         var nozzle = new NozzleDefinition
         {
-            FlowRateLPerMinAtRef = 1.18,
-            ReferencePressureBar = 3.0,
-            MinPressureBar = 1.5,
-            MaxPressureBar = 6.0,
+            FlowRateLPerMinAtRef = 1.14,
+            ReferencePressureBar = 2.76,
+            MinPressureBar = 1.0,
+            MaxPressureBar = 4.14,
         };
 
         var result = RateCalculator.Validate(nozzle, 8.0, 5.0, 200, 2.8);
@@ -217,8 +218,8 @@ public class TrialSystemTests
             NozzlesPerBoom = 1,
             ActiveNozzle = new NozzleDefinition
             {
-                FlowRateLPerMinAtRef = 1.18,
-                ReferencePressureBar = 3.0,
+                FlowRateLPerMinAtRef = 1.14,
+                ReferencePressureBar = 2.76,
                 MinPressureBar = 1.0,
                 MaxPressureBar = 20.0, // Wide range so clamping doesn't cause errors
             },
@@ -251,10 +252,10 @@ public class TrialSystemTests
             ActiveNozzle = new NozzleDefinition
             {
                 Model = "XR 110-03",
-                FlowRateLPerMinAtRef = 1.18,
-                ReferencePressureBar = 3.0,
+                FlowRateLPerMinAtRef = 1.14,
+                ReferencePressureBar = 2.76,
                 MinPressureBar = 1.0,
-                MaxPressureBar = 6.0,
+                MaxPressureBar = 4.14,
             },
             Products = new() { new Product { Name = "H", RateLPerHa = 200 } },
         };
@@ -263,8 +264,8 @@ public class TrialSystemTests
 
         Assert.True(result.SpeedWasClamped);
         Assert.Equal(3.0, trial.RecommendedSpeedKmh);
-        // Pressure at 3 km/h for 200 L/ha: ~16.9 bar → way over 6 bar max
-        Assert.True(trial.RecommendedPressureBar > 6.0);
+        // Pressure at 3 km/h for 200 L/ha: ~16.6 bar → way over 4.14 bar max
+        Assert.True(trial.RecommendedPressureBar > 4.14);
         Assert.False(result.IsValid); // Pressure out of range
     }
 
@@ -280,10 +281,10 @@ public class TrialSystemTests
             ActiveNozzle = new NozzleDefinition
             {
                 Model = "TeeJet XR 110-01",
-                FlowRateLPerMinAtRef = 0.39,
-                ReferencePressureBar = 3.0,
+                FlowRateLPerMinAtRef = 0.38,
+                ReferencePressureBar = 2.76,
                 MinPressureBar = 1.0,
-                MaxPressureBar = 6.0,
+                MaxPressureBar = 4.14,
             },
             Products = new() { new Product { Name = "H", RateLPerHa = 100 } },
         };
@@ -308,19 +309,19 @@ public class TrialSystemTests
             SwathWidthMeters = 2.8,
             ActiveNozzle = new NozzleDefinition
             {
-                FlowRateLPerMinAtRef = 1.96,
-                ReferencePressureBar = 3.0,
+                FlowRateLPerMinAtRef = 1.89,
+                ReferencePressureBar = 2.76,
                 MinPressureBar = 1.0,
-                MaxPressureBar = 6.0,
+                MaxPressureBar = 4.14,
             },
             Products = new() { new Product { Name = "H", RateLPerHa = 50 } },
         };
 
-        // 50 L/ha with XR-05 @ 3 bar: speed = 1.96×600/(50×2.8) = 8.4 km/h
+        // 50 L/ha with XR-05 @ 2.76 bar: speed = 1.89×600/(50×2.8) = 8.1 km/h
         var result = RateCalculator.AutoCalculate(trial, minSpeedKmh: 3.0, maxSpeedKmh: 10.0);
 
         Assert.False(result.SpeedWasClamped);
-        Assert.InRange(trial.RecommendedSpeedKmh, 8.0, 9.0);
+        Assert.InRange(trial.RecommendedSpeedKmh, 7.5, 8.5);
     }
 
     [Fact]
@@ -332,8 +333,8 @@ public class TrialSystemTests
             SwathWidthMeters = 2.8,
             ActiveNozzle = new NozzleDefinition
             {
-                FlowRateLPerMinAtRef = 1.18,
-                ReferencePressureBar = 3.0,
+                FlowRateLPerMinAtRef = 1.14,
+                ReferencePressureBar = 2.76,
             },
             Products = new() { new Product { Name = "H", RateLPerHa = 200 } },
         };
@@ -341,8 +342,8 @@ public class TrialSystemTests
         var result = RateCalculator.AutoCalculate(trial, minSpeedKmh: 1.0);
 
         Assert.False(result.SpeedWasClamped);
-        Assert.InRange(trial.RecommendedSpeedKmh, 1.2, 1.3);
-        Assert.Equal(3.0, trial.RecommendedPressureBar); // Reference pressure used
+        Assert.InRange(trial.RecommendedSpeedKmh, 1.1, 1.3);
+        Assert.Equal(2.76, trial.RecommendedPressureBar); // Reference pressure used
     }
 
     // ════════════════════════════════════════════════════════════════════
