@@ -134,7 +134,7 @@ public class MachineProfile
     // ── Identity ──
 
     /// <summary>Profile display name (e.g. "Gevax 10-boom / Water").</summary>
-    public string ProfileName { get; set; } = "Default Profile";
+    public string ProfileName { get; set; } = "Стандартний профіль";
 
     /// <summary>Optional notes (e.g. "Calibrated 2026-03-09 on water at 5 km/h").</summary>
     public string Notes { get; set; } = string.Empty;

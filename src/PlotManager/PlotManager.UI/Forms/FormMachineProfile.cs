@@ -78,7 +78,7 @@ public class FormMachineProfile : Form
     private void InitializeComponents()
     {
         Text = "⚙ Machine Profile — Профіль Обладнання";
-        Size = new System.Drawing.Size(900, 780);
+        Size = new System.Drawing.Size(900, 860);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -370,7 +370,7 @@ public class FormMachineProfile : Form
         {
             int nextId = _dgvBooms.Rows.Count;
             _dgvBooms.Rows.Add(
-                nextId, $"Boom {nextId + 1}", nextId,
+                nextId + 1, $"Boom {nextId + 1}", nextId,
                 "0,00", "0,00", "0,25", "70", "30", "-1", "-1", "0,00", true);
             lblCount.Text = $"Штанг: {_dgvBooms.Rows.Count}";
         };
@@ -572,7 +572,7 @@ public class FormMachineProfile : Form
         foreach (BoomProfile bp in _profile.Booms)
         {
             _dgvBooms.Rows.Add(
-                bp.BoomId,
+                bp.BoomId + 1,
                 bp.Name,
                 bp.ValveChannel,
                 bp.YOffsetMeters.ToString("F2"),
@@ -641,7 +641,7 @@ public class FormMachineProfile : Form
             {
                 _profile.Booms.Add(new BoomProfile
                 {
-                    BoomId = Convert.ToInt32(r.Cells["BoomId"].Value),
+                    BoomId = Convert.ToInt32(r.Cells["BoomId"].Value) - 1,
                     Name = r.Cells["Name"].Value?.ToString() ?? "",
                     ValveChannel = Convert.ToInt32(r.Cells["ValveChannel"].Value),
                     YOffsetMeters = Convert.ToDouble(r.Cells["YOffset"].Value),

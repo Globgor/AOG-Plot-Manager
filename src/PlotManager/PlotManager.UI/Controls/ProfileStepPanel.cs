@@ -121,13 +121,17 @@ public sealed class ProfileStepPanel : UserControl
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
+            RowCount = 6,
             ColumnStyles =
             {
-                new ColumnStyle(SizeType.Percent, 50),
-                new ColumnStyle(SizeType.Percent, 50),
+                new ColumnStyle(SizeType.Percent, 40),
+                new ColumnStyle(SizeType.Percent, 60),
             },
-            Padding = new Padding(8),
+            Padding = new Padding(12),
         };
+        // Ensure each row auto-sizes to its content
+        for (int i = 0; i < 6; i++)
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         _lblStatus = new Label
         {
