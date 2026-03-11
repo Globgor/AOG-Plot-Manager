@@ -30,6 +30,7 @@ public class FormMachineProfile : Form
     private Label _lblCalcFlowPerNozzle = null!;
     private Label _lblCalcActualRate = null!;
     private Label _lblCalcNozzleSuggestion = null!;
+    private Label _lblCalcRecommendedSpeed = null!;
     private Label _lblCalcWarnings = null!;
 
     // ── Tab 2: Booms ──
@@ -176,6 +177,7 @@ public class FormMachineProfile : Form
         AddSectionHeader(p, "📊 Результат розрахунку", ref _row);
         _lblCalcPressure = AddResultLabel(p, "");
         _lblCalcFlowPerNozzle = AddResultLabel(p, "");
+        _lblCalcRecommendedSpeed = AddResultLabel(p, "");
         _lblCalcActualRate = AddResultLabel(p, "");
         _lblCalcNozzleSuggestion = AddResultLabel(p, "");
         _lblCalcNozzleSuggestion.MaximumSize = new System.Drawing.Size(800, 0);
@@ -272,6 +274,18 @@ public class FormMachineProfile : Form
             _lblCalcFlowPerNozzle.Text =
                 $"💧 Вилив на форсунку: {requiredFlowPerNozzle:F2} л/хв";
             _lblCalcFlowPerNozzle.ForeColor = AppTheme.Accent;
+
+            // Recommended speed at reference pressure (comfortable working point)
+            double flowAtRef = nozzle.FlowRateLPerMinAtRef;
+            double recommendedSpeed = flowAtRef * 600.0 * nozzlesPerBoom
+                / (targetRate * swath);
+
+            _lblCalcRecommendedSpeed.Text =
+                $"🚜 Рекомендована швидкість: {recommendedSpeed:F1} км/год " +
+                $"(при {nozzle.ReferencePressureBar:F1} бар)";
+            bool speedOk = recommendedSpeed >= 2.0 && recommendedSpeed <= 12.0;
+            _lblCalcRecommendedSpeed.ForeColor = speedOk
+                ? AppTheme.Success : AppTheme.Warning;
 
             _lblCalcActualRate.Text = $"📊 Фактична норма: {actualRate:F1} л/га";
             _lblCalcActualRate.ForeColor = AppTheme.Accent;
