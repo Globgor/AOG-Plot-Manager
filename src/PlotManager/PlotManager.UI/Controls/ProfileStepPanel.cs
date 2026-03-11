@@ -68,11 +68,11 @@ public sealed class ProfileStepPanel : UserControl
             "Профіль можна зберегти у файл та завантажити пізніше.");
         container.Controls.Add(subtitle, 0, 0);
 
-        // ── Summary card (auto-sized, appears right after header) ──
+        // ── Summary card (fixed height, appears right after header) ──
         _summaryCard = new Panel
         {
             Dock = DockStyle.Top,
-            AutoSize = true,
+            Height = 220,
             Margin = new Padding(0, 12, 0, 12),
         };
         AppTheme.StyleCard(_summaryCard);
