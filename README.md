@@ -76,7 +76,7 @@ RoboCraft/
 │       ├── PlotManager.UI/          # WinForms приложение
 │       │   ├── Forms/               # Окна
 │       │   └── Controls/            # Пользовательские контролы
-│       └── PlotManager.Tests/       # xUnit тесты (254 теста)
+│       └── PlotManager.Tests/       # xUnit тесты (293 тестов)
 ```
 
 ---
