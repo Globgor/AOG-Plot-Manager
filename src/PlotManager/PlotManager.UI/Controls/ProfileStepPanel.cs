@@ -31,11 +31,16 @@ public sealed class ProfileStepPanel : UserControl
     /// <summary>Fires when the profile changes.</summary>
     public event EventHandler? ProfileChanged;
 
+    private static readonly string LastProfilePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "AOGPlotManager", "last_profile.txt");
+
     public ProfileStepPanel()
     {
         Dock = DockStyle.Fill;
         BackColor = AppTheme.BgPrimary;
         BuildLayout();
+        TryLoadLastProfile();
     }
 
     private void BuildLayout()
@@ -234,11 +239,11 @@ public sealed class ProfileStepPanel : UserControl
         _profile ??= MachineProfile.CreateDefault();
 
         using var form = new FormMachineProfile(_profile);
-        if (form.ShowDialog(this) == DialogResult.OK)
+        if (form.ShowDialog(FindForm()) == DialogResult.OK)
         {
             SetProfile(form.Profile);
-            // Auto-save to profiles directory
             FormProfileManager.AutoSaveProfile(form.Profile);
+            SaveLastProfilePath(form.Profile.ProfileName);
         }
     }
 
@@ -246,20 +251,21 @@ public sealed class ProfileStepPanel : UserControl
     {
         _profile = MachineProfile.CreateDefault();
         using var form = new FormMachineProfile(_profile);
-        if (form.ShowDialog(this) == DialogResult.OK)
+        if (form.ShowDialog(FindForm()) == DialogResult.OK)
         {
             SetProfile(form.Profile);
-            // Auto-save to profiles directory
             FormProfileManager.AutoSaveProfile(form.Profile);
+            SaveLastProfilePath(form.Profile.ProfileName);
         }
     }
 
     private void OnOpenProfileManager(object? sender, EventArgs e)
     {
         using var mgr = new FormProfileManager();
-        if (mgr.ShowDialog(this) == DialogResult.OK && mgr.SelectedProfile != null)
+        if (mgr.ShowDialog(FindForm()) == DialogResult.OK && mgr.SelectedProfile != null)
         {
             SetProfile(mgr.SelectedProfile);
+            SaveLastProfilePath(mgr.SelectedProfile.ProfileName);
         }
     }
 
@@ -270,18 +276,74 @@ public sealed class ProfileStepPanel : UserControl
             Filter = "Machine Profile (*.json)|*.json",
             Title = "Завантажити профіль машини",
         };
-        if (dlg.ShowDialog() != DialogResult.OK) return;
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
 
         try
         {
             var loaded = MachineProfile.LoadFromFile(dlg.FileName);
             SetProfile(loaded);
+            SaveLastProfilePath(loaded.ProfileName);
         }
         catch (Exception ex)
         {
             MessageBox.Show(
                 $"Помилка завантаження:\n{ex.Message}",
                 "❌ Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>Saves the name of the last used profile for auto-load on next start.</summary>
+    private static void SaveLastProfilePath(string profileName)
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(LastProfilePath)!;
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(LastProfilePath, profileName);
+        }
+        catch
+        {
+            // Non-critical — ignore silently
+        }
+    }
+
+    /// <summary>Tries to auto-load the last used profile on panel initialization.</summary>
+    private void TryLoadLastProfile()
+    {
+        try
+        {
+            if (!File.Exists(LastProfilePath)) return;
+
+            var profileName = File.ReadAllText(LastProfilePath).Trim();
+            if (string.IsNullOrEmpty(profileName)) return;
+
+            // Search for matching profile in the profiles directory
+            var profilesDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "AOGPlotManager", "profiles");
+
+            if (!Directory.Exists(profilesDir)) return;
+
+            foreach (var file in Directory.GetFiles(profilesDir, "*.json"))
+            {
+                try
+                {
+                    var p = MachineProfile.LoadFromFile(file);
+                    if (p.ProfileName == profileName)
+                    {
+                        SetProfile(p);
+                        return;
+                    }
+                }
+                catch
+                {
+                    // Skip corrupt files
+                }
+            }
+        }
+        catch
+        {
+            // Non-critical — ignore silently
         }
     }
 }

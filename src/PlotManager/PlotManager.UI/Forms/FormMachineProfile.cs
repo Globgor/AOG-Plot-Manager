@@ -79,9 +79,10 @@ public class FormMachineProfile : Form
     {
         Text = "⚙ Machine Profile — Профіль Обладнання";
         Size = new System.Drawing.Size(900, 1000);
-        StartPosition = FormStartPosition.CenterParent;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
+        MinimumSize = new System.Drawing.Size(800, 700);
+        StartPosition = FormStartPosition.CenterScreen;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
         MinimizeBox = false;
         Font = new System.Drawing.Font("Segoe UI", 9.5f);
         BackColor = AppTheme.BgPrimary;
