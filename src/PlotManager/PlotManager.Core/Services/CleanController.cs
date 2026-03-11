@@ -18,7 +18,9 @@ public class CleanController : IDisposable
     private bool _valvesOpen;
     private int _cyclesRemaining;
     private ushort _cleanMask;
-    private bool _disposed;
+    // RACE-FIX: volatile ensures ThreadPool Elapsed handler sees Dispose() write without locking.
+    private volatile bool _disposed;
+    private readonly object _pulseLock = new(); // Guards timer state mutations from Elapsed
     private readonly IPlotLogger? _logger;
 
     /// <summary>
@@ -170,12 +172,20 @@ public class CleanController : IDisposable
 
     private void OnPulseTimerElapsed(object? sender, ElapsedEventArgs e)
     {
+        // RACE-FIX: volatile _disposed check first (no lock needed for read).
+        // Then recheck inside lock — prevents calling Start*Phase after Dispose()
+        // because System.Timers.Timer fires Elapsed from ThreadPool.
         if (_disposed) return;
 
-        if (_valvesOpen)
-            StartOffPhase();
-        else
-            StartOnPhase();
+        lock (_pulseLock)
+        {
+            if (_disposed) return; // Double-checked: Dispose may have run while we waited
+
+            if (_valvesOpen)
+                StartOffPhase();
+            else
+                StartOnPhase();
+        }
     }
 
     private void SendValveMask(ushort mask)

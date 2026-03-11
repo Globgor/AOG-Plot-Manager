@@ -235,13 +235,18 @@ public class PlotModeController : IDisposable
             // Apply safety interlocks (speed, E-STOP, RTK, air pressure)
             ushort finalMask = _sectionController.ApplyInterlocks(result.ValveMask, gps.SpeedKmh);
 
+            bool maskChanged;
             lock (_stateLock)
             {
                 _lastResult = result with { ValveMask = finalMask };
+                // RACE-FIX: compare and record _lastSentMask atomically to avoid TOCTOU.
+                // Previously maskChanged was checked OUTSIDE the lock, causing two concurrent
+                // GPS updates to both see a difference and both call SendValveMask(), flooding
+                // the serial bus with duplicate packets.
+                maskChanged = finalMask != _lastSentMask;
             }
 
-            // Only send if mask changed (avoid serial bus flooding)
-            if (finalMask != _lastSentMask)
+            if (maskChanged)
             {
                 _logger?.Info("PlotMode",
                     $"Valve mask 0x{_lastSentMask:X4}→0x{finalMask:X4} | State={result.State} " +

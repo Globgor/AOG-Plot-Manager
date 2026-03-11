@@ -114,10 +114,11 @@ public class Boom
         double sinH = Math.Sin(headingRad);
 
         // Project boom front/back points
+        double cosLat = Math.Cos(boomPosition.Latitude * Math.PI / 180.0); // cache — used twice below
         double frontLat = boomPosition.Latitude + (halfWidth / 110540.0) * cosH;
-        double frontLon = boomPosition.Longitude + (halfWidth / (111320.0 * Math.Cos(boomPosition.Latitude * Math.PI / 180.0))) * sinH;
+        double frontLon = boomPosition.Longitude + (halfWidth / (111320.0 * cosLat)) * sinH;
         double backLat = boomPosition.Latitude - (halfWidth / 110540.0) * cosH;
-        double backLon = boomPosition.Longitude - (halfWidth / (111320.0 * Math.Cos(boomPosition.Latitude * Math.PI / 180.0))) * sinH;
+        double backLon = boomPosition.Longitude - (halfWidth / (111320.0 * cosLat)) * sinH;
 
         // Compute overlap along driving direction by projecting onto the
         // plot's lat/lon bounding box
