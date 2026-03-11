@@ -62,8 +62,10 @@ public class SerialTransport : ITransport
         if (_port?.IsOpen != true)
             throw new InvalidOperationException("Serial port is not open.");
 
-        _port.Write(data, 0, data.Length);
-        return Task.CompletedTask;
+        // BLOCK-FIX: SerialPort.Write() is synchronous and blocks up to WriteTimeout (500ms).
+        // At 10 Hz GPS this can stall the callback thread. Offload to ThreadPool.
+        // Consistent with ConnectAsync which already uses Task.Run for _port.Open().
+        return Task.Run(() => _port.Write(data, 0, data.Length), ct);
     }
 
     public async Task<byte[]> ReceiveAsync(int timeoutMs = 100, CancellationToken ct = default)

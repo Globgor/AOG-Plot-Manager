@@ -44,6 +44,41 @@ public class FieldContextPanel : UserControl
     private static readonly Color AccentRed = Color.FromArgb(244, 67, 54);
     private static readonly Color AccentPurple = Color.FromArgb(156, 39, 176);
 
+    // ── Cached GDI objects — GDI-FIX: avoid allocating Font/Brush every OnPaint (10 Hz) ──
+    // DrawCard
+    private readonly SolidBrush _cardBrush      = new(Color.FromArgb(40, 40, 48));
+    private readonly Font        _titleFont       = new("Segoe UI Semibold", 8f);
+    private readonly SolidBrush _titleBrush      = new(Color.FromArgb(130, 130, 140));
+    // Position card
+    private readonly Font        _posBigFont      = new("Segoe UI", 16f, FontStyle.Bold);
+    private readonly Font        _posSmallFont    = new("Segoe UI", 8.5f);
+    private readonly SolidBrush _posBrightBrush  = new(Color.FromArgb(230, 230, 230));
+    private readonly SolidBrush _posDimBrush     = new(Color.FromArgb(130, 130, 140));
+    private readonly SolidBrush _posAccentBrush  = new(Color.FromArgb(0, 188, 212));
+    // Product card
+    private readonly Font        _prodBigFont     = new("Segoe UI", 18f, FontStyle.Bold);
+    private readonly SolidBrush _prodDimBrush    = new(Color.FromArgb(130, 130, 140));
+    private readonly Font        _nextFont        = new("Segoe UI Semibold", 11f);
+    private readonly SolidBrush _nextBrush       = new(Color.FromArgb(156, 39, 176));
+    // Pass card
+    private readonly Font        _passFont        = new("Segoe UI Semibold", 11f);
+    private readonly Font        _passSmallFont   = new("Segoe UI", 8.5f);
+    private readonly SolidBrush _passBrightBrush = new(Color.FromArgb(230, 230, 230));
+    private readonly SolidBrush _passDimBrush    = new(Color.FromArgb(130, 130, 140));
+    // Trial card
+    private readonly Font        _trialFont       = new("Segoe UI Semibold", 10f);
+    private readonly Font        _trialSmallFont  = new("Segoe UI", 8.5f);
+    private readonly SolidBrush _trialDimBrush   = new(Color.FromArgb(130, 130, 140));
+    private readonly SolidBrush _trialActiveBrush= new(Color.FromArgb(76, 175, 80));
+    private readonly Pen         _sepPen          = new(Color.FromArgb(55, 55, 60), 1);
+    private readonly SolidBrush _logBrush        = new(Color.FromArgb(130, 130, 140));
+    // GPS card
+    private readonly Font        _coordFont       = new("Consolas", 9f);
+    private readonly Font        _gpsSmallFont    = new("Segoe UI", 8.5f);
+    private readonly SolidBrush _gpsBrightBrush  = new(Color.FromArgb(230, 230, 230));
+    private readonly SolidBrush _gpsDimBrush     = new(Color.FromArgb(130, 130, 140));
+    private readonly SolidBrush _gpsAccentBrush  = new(Color.FromArgb(0, 188, 212));
+
     public FieldContextPanel()
     {
         DoubleBuffered = true;
@@ -141,21 +176,17 @@ public class FieldContextPanel : UserControl
 
     private float DrawCard(Graphics g, float x, float y, float w, string title, Func<Graphics, float, float, float, float> drawContent)
     {
-        // Card background with rounded corners
-        using var cardBrush = new SolidBrush(CardBg);
-        var cardRect = new RectangleF(x, y, w, 10); // Will be resized
+        // GDI-FIX: use cached cardBrush/titleFont/titleBrush (were `using var` per-call before)
         float contentY = y + 24;
         float contentH = drawContent(g, x + 10, contentY, w - 20);
         float totalH = 24 + contentH + 8;
 
         // Draw card bg
         using var path = RoundedRect(new RectangleF(x, y, w, totalH), 6);
-        g.FillPath(cardBrush, path);
+        g.FillPath(_cardBrush, path);
 
         // Draw title
-        using var titleFont = new Font("Segoe UI Semibold", 8f);
-        using var titleBrush = new SolidBrush(DimText);
-        g.DrawString(title, titleFont, titleBrush, x + 10, y + 4);
+        g.DrawString(title, _titleFont, _titleBrush, x + 10, y + 4);
 
         return y + totalH;
     }
@@ -164,17 +195,18 @@ public class FieldContextPanel : UserControl
 
     private float DrawPositionContent(Graphics g, float x, float y, float w)
     {
-        using var bigFont = new Font("Segoe UI", 16f, FontStyle.Bold);
-        using var smallFont = new Font("Segoe UI", 8.5f);
-        using var brightBrush = new SolidBrush(BrightText);
-        using var dimBrush = new SolidBrush(DimText);
-        using var accentBrush = new SolidBrush(AccentCyan);
+        // GDI-FIX: use cached fonts/brushes
+        Font bigFont    = _posBigFont;
+        Font smallFont  = _posSmallFont;
+        SolidBrush brightBrush = _posBrightBrush;
+        SolidBrush dimBrush    = _posDimBrush;
+        SolidBrush accentBrush = _posAccentBrush;
 
         float h = 0;
 
         if (_lastResult == null)
         {
-            g.DrawString("Ожидание GPS…", smallFont, dimBrush, x, y);
+            g.DrawString("Очікування GPS…", smallFont, dimBrush, x, y);
             return 20;
         }
 
@@ -188,22 +220,23 @@ public class FieldContextPanel : UserControl
                     ? $"R{_lastResult.ActivePlot.Row + 1}C{_lastResult.ActivePlot.Column + 1}"
                     : "—";
                 posText = plotId;
-                stateColor = AccentGreen.ToArgb() == 0 ? AccentGreen : AccentGreen;
+                // DEAD-CODE-FIX: was `AccentGreen.ToArgb() == 0 ? AccentGreen : AccentGreen` — always true
+                stateColor = AccentGreen;
                 break;
             case BoomState.ApproachingPlot:
-                posText = "→ Подход";
+                posText = "→ Наближення";  // uk: approach
                 stateColor = AccentOrange;
                 break;
             case BoomState.LeavingPlot:
-                posText = "← Выход";
+                posText = "← Вихід";     // uk: exit
                 stateColor = AccentOrange;
                 break;
             case BoomState.InAlley:
-                posText = "Аллея";
+                posText = "Алея";         // uk: alley
                 stateColor = DimText;
                 break;
             default:
-                posText = "Вне поля";
+                posText = "Поза поля";   // uk: outside field
                 stateColor = DimText;
                 break;
         }
@@ -220,20 +253,20 @@ public class FieldContextPanel : UserControl
         // Distance to boundary
         if (_lastResult.DistanceToBoundaryMeters > 0 && _lastResult.State != BoomState.OutsideGrid)
         {
-            string dist = $"▸ До границы: {_lastResult.DistanceToBoundaryMeters:F1}м";
+            string dist = $"▸ До межі: {_lastResult.DistanceToBoundaryMeters:F1}м";  // uk: to boundary
             g.DrawString(dist, smallFont, accentBrush, x, y + h);
             h += 16;
         }
 
         // Speed
-        string speedText = $"🏎 {_speedKmh:F1} км/ч";
+        string speedText = $"🏎 {_speedKmh:F1} км/год";  // uk: km/h
         Color speedColor = BrightText;
         if (_targetSpeedKmh > 0)
         {
             double deviation = Math.Abs(_speedKmh - _targetSpeedKmh) / _targetSpeedKmh * 100;
             if (deviation > 20) speedColor = AccentRed;
             else if (deviation > 10) speedColor = AccentOrange;
-            speedText += $" (цель: {_targetSpeedKmh:F1})";
+            speedText += $" (ціль: {_targetSpeedKmh:F1})";  // uk: target
         }
         using var speedBrush = new SolidBrush(speedColor);
         g.DrawString(speedText, smallFont, speedBrush, x, y + h);
@@ -244,9 +277,10 @@ public class FieldContextPanel : UserControl
 
     private float DrawProductContent(Graphics g, float x, float y, float w)
     {
-        using var bigFont = new Font("Segoe UI", 18f, FontStyle.Bold);
-        using var smallFont = new Font("Segoe UI", 8.5f);
-        using var dimBrush = new SolidBrush(DimText);
+        // GDI-FIX: use cached fonts/brushes
+        Font bigFont   = _prodBigFont;
+        Font smallFont = _posSmallFont;
+        SolidBrush dimBrush = _prodDimBrush;
 
         float h = 0;
 
@@ -260,18 +294,16 @@ public class FieldContextPanel : UserControl
         // "Current" label
         if (_lastResult?.ActiveProduct != null)
         {
-            g.DrawString("Текущий продукт", smallFont, dimBrush, x, y + h);
+            g.DrawString("Поточний продукт", smallFont, dimBrush, x, y + h);  // uk: current product
             h += 16;
         }
 
         // Next product preview
         if (!string.IsNullOrEmpty(_nextProduct))
         {
-            g.DrawString("Следующий:", smallFont, dimBrush, x, y + h);
+            g.DrawString("Наступний:", smallFont, dimBrush, x, y + h);  // uk: next
             h += 14;
-            using var nextFont = new Font("Segoe UI Semibold", 11f);
-            using var nextBrush = new SolidBrush(AccentPurple);
-            g.DrawString(_nextProduct, nextFont, nextBrush, x, y + h);
+            g.DrawString(_nextProduct, _nextFont, _nextBrush, x, y + h);
             h += 20;
         }
 
@@ -280,27 +312,28 @@ public class FieldContextPanel : UserControl
 
     private float DrawPassContent(Graphics g, float x, float y, float w)
     {
-        using var medFont = new Font("Segoe UI Semibold", 11f);
-        using var smallFont = new Font("Segoe UI", 8.5f);
-        using var brightBrush = new SolidBrush(BrightText);
-        using var dimBrush = new SolidBrush(DimText);
+        // GDI-FIX: use cached fonts/brushes
+        Font medFont   = _passFont;
+        Font smallFont = _passSmallFont;
+        SolidBrush brightBrush = _passBrightBrush;
+        SolidBrush dimBrush    = _passDimBrush;
 
         float h = 0;
 
         if (_currentPass == null || !_currentPass.IsActive)
         {
-            g.DrawString("Между проходами", smallFont, dimBrush, x, y);
+            g.DrawString("Між проходами", smallFont, dimBrush, x, y);  // uk: between passes
             return 20;
         }
 
         // Pass number + direction
         string arrow = _currentPass.Direction == PassDirection.Up ? "↑" : "↓";
-        string passText = $"Проход {_currentPass.PassNumber} {arrow}";
+        string passText = $"Прохід {_currentPass.PassNumber} {arrow}";  // uk: pass
         g.DrawString(passText, medFont, brightBrush, x, y);
         h += 22;
 
         // Column
-        g.DrawString($"Колонка: {_currentPass.ColumnIndex + 1}", smallFont, dimBrush, x, y + h);
+        g.DrawString($"Колонка: {_currentPass.ColumnIndex + 1}", smallFont, dimBrush, x, y + h);  // uk: column
         h += 16;
 
         // Speed deviation
@@ -308,13 +341,13 @@ public class FieldContextPanel : UserControl
         {
             Color devColor = _currentPass.MaxSpeedDeviationPercent > 15 ? AccentRed : AccentOrange;
             using var devBrush = new SolidBrush(devColor);
-            string devText = $"⚠ Отклонение: {_currentPass.MaxSpeedDeviationPercent:F0}%";
+            string devText = $"⚠ Відхилення: {_currentPass.MaxSpeedDeviationPercent:F0}%";  // uk: deviation
             g.DrawString(devText, smallFont, devBrush, x, y + h);
             h += 16;
         }
 
         // Sample count
-        g.DrawString($"Замеров: {_currentPass.SpeedSampleCount}", smallFont, dimBrush, x, y + h);
+        g.DrawString($"Замірів: {_currentPass.SpeedSampleCount}", smallFont, dimBrush, x, y + h);  // uk: samples
         h += 16;
 
         return h;
@@ -322,42 +355,40 @@ public class FieldContextPanel : UserControl
 
     private float DrawTrialContent(Graphics g, float x, float y, float w)
     {
-        using var medFont = new Font("Segoe UI Semibold", 10f);
-        using var smallFont = new Font("Segoe UI", 8.5f);
-        using var dimBrush = new SolidBrush(DimText);
+        // GDI-FIX: use cached fonts/brushes
+        Font medFont   = _trialFont;
+        Font smallFont = _trialSmallFont;
+        SolidBrush dimBrush = _trialDimBrush;
 
         float h = 0;
 
         // Trial session
         if (_trialActive)
         {
-            using var activeBrush = new SolidBrush(AccentGreen);
-            g.DrawString($"● {_trialName ?? "Trial"}", medFont, activeBrush, x, y);
+            g.DrawString($"● {_trialName ?? "Trial"}", medFont, _trialActiveBrush, x, y);
             h += 20;
 
-            g.DrawString($"Записей: {_trialRecordCount}", smallFont, dimBrush, x, y + h);
+            g.DrawString($"Записів: {_trialRecordCount}", smallFont, dimBrush, x, y + h);  // uk: records
             h += 16;
         }
         else
         {
-            g.DrawString("Trial: не активен", smallFont, dimBrush, x, y);
+            g.DrawString("Trial: не активний", smallFont, dimBrush, x, y);  // uk: not active
             h += 16;
         }
 
         // Separator line
         h += 4;
-        using var sepPen = new Pen(Color.FromArgb(55, 55, 60), 1);
-        g.DrawLine(sepPen, x, y + h, x + w, y + h);
+        g.DrawLine(_sepPen, x, y + h, x + w, y + h);
         h += 6;
 
         // Logger status
-        using var logBrush = new SolidBrush(DimText);
-        g.DrawString($"Logger: {_loggerStatus}", smallFont, logBrush, x, y + h);
+        g.DrawString($"Logger: {_loggerStatus}", smallFont, _logBrush, x, y + h);
         h += 14;
 
         if (_logEntryCount > 0)
         {
-            g.DrawString($"Записей лога: {_logEntryCount}", smallFont, dimBrush, x, y + h);
+            g.DrawString($"Записів логу: {_logEntryCount}", smallFont, dimBrush, x, y + h);  // uk: log entries
             h += 14;
         }
 
@@ -370,17 +401,18 @@ public class FieldContextPanel : UserControl
 
     private float DrawGpsContent(Graphics g, float x, float y, float w)
     {
-        using var coordFont = new Font("Consolas", 9f);
-        using var smallFont = new Font("Segoe UI", 8.5f);
-        using var brightBrush = new SolidBrush(BrightText);
-        using var dimBrush = new SolidBrush(DimText);
-        using var accentBrush = new SolidBrush(AccentCyan);
+        // GDI-FIX: use cached fonts/brushes
+        Font coordFont  = _coordFont;
+        Font smallFont  = _gpsSmallFont;
+        SolidBrush brightBrush = _gpsBrightBrush;
+        SolidBrush dimBrush    = _gpsDimBrush;
+        SolidBrush accentBrush = _gpsAccentBrush;
 
         float h = 0;
 
         if (_latitude == 0 && _longitude == 0)
         {
-            g.DrawString("Ожидание GPS…", smallFont, dimBrush, x, y);
+            g.DrawString("Очікування GPS…", smallFont, dimBrush, x, y);  // uk: waiting GPS
             return 20;
         }
 
@@ -392,7 +424,7 @@ public class FieldContextPanel : UserControl
 
         // Heading with compass arrow
         string compass = GetCompassDirection(_headingDeg);
-        string headingText = $"Курс: {_headingDeg:F0}° {compass}";
+        string headingText = $"Курс: {_headingDeg:F0}° {compass}";  // uk: heading
         g.DrawString(headingText, smallFont, accentBrush, x, y + h);
 
         // Draw small compass arrow
@@ -461,5 +493,26 @@ public class FieldContextPanel : UserControl
         path.AddArc(arc, 90, 90);
         path.CloseFigure();
         return path;
+    }
+
+    // GDI-FIX: Dispose all cached GDI objects
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _cardBrush.Dispose();      _titleFont.Dispose();      _titleBrush.Dispose();
+            _posBigFont.Dispose();     _posSmallFont.Dispose();
+            _posBrightBrush.Dispose(); _posDimBrush.Dispose();    _posAccentBrush.Dispose();
+            _prodBigFont.Dispose();    _prodDimBrush.Dispose();
+            _nextFont.Dispose();       _nextBrush.Dispose();
+            _passFont.Dispose();       _passSmallFont.Dispose();
+            _passBrightBrush.Dispose();_passDimBrush.Dispose();
+            _trialFont.Dispose();      _trialSmallFont.Dispose();
+            _trialDimBrush.Dispose();  _trialActiveBrush.Dispose();
+            _sepPen.Dispose();         _logBrush.Dispose();
+            _coordFont.Dispose();      _gpsSmallFont.Dispose();
+            _gpsBrightBrush.Dispose(); _gpsDimBrush.Dispose();    _gpsAccentBrush.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }

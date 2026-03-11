@@ -30,6 +30,13 @@ public class BoomStatusPanel : UserControl
     private readonly SolidBrush _ledOffBrush = new(LedOffColor);
     private readonly SolidBrush _glowBrush = new(Color.FromArgb(40, LedOnColor));
     private readonly Pen _ledBorderPen = new(LedBorderColor, 1);
+    // GDI-FIX: cache fonts+brushes — were created every OnPaint at 10 Hz = 40 allocs/sec
+    private readonly Font _labelFont        = new("Segoe UI", 7f);
+    private readonly SolidBrush _labelBrush = new(Color.FromArgb(140, 140, 140));
+    private readonly Font _productFont      = new("Segoe UI Semibold", 11f);
+    private readonly Font _rateFont         = new("Segoe UI", 9f);
+    private readonly SolidBrush _productBrush = new(ProductColor);
+    private readonly SolidBrush _rateBrush    = new(TextColor);
 
     public BoomStatusPanel()
     {
@@ -72,9 +79,9 @@ public class BoomStatusPanel : UserControl
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-        // Section labels
-        using var labelFont = new Font("Segoe UI", 7f);
-        using var labelBrush = new SolidBrush(Color.FromArgb(140, 140, 140));
+        // Section labels — GDI-FIX: use cached font/brush
+        Font labelFont     = _labelFont;
+        SolidBrush labelBrush = _labelBrush;
 
         // Calculate LED positions centered horizontally
         int totalLedsWidth = 14 * LedSize + 13 * LedSpacing;
@@ -108,18 +115,14 @@ public class BoomStatusPanel : UserControl
                 ledY + LedSize + 2);
         }
 
-        // Product + Rate label (right side)
+        // Product + Rate label (right side) — GDI-FIX: use cached fonts/brushes
         float labelX = startX + totalLedsWidth + 20;
-        using var productFont = new Font("Segoe UI Semibold", 11f);
-        using var rateFont = new Font("Segoe UI", 9f);
-        using var productBrush = new SolidBrush(ProductColor);
-        using var rateBrush = new SolidBrush(TextColor);
 
-        g.DrawString(_activeProduct, productFont, productBrush, labelX, ledY);
-        g.DrawString(_targetRate, rateFont, rateBrush, labelX, ledY + 22);
+        g.DrawString(_activeProduct, _productFont, _productBrush, labelX, ledY);
+        g.DrawString(_targetRate, _rateFont, _rateBrush, labelX, ledY + 22);
     }
 
-    // P2 FIX: Dispose cached GDI objects
+    // P2 FIX + GDI-FIX: Dispose all cached GDI objects
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -128,6 +131,12 @@ public class BoomStatusPanel : UserControl
             _ledOffBrush.Dispose();
             _glowBrush.Dispose();
             _ledBorderPen.Dispose();
+            _labelFont.Dispose();
+            _labelBrush.Dispose();
+            _productFont.Dispose();
+            _rateFont.Dispose();
+            _productBrush.Dispose();
+            _rateBrush.Dispose();
         }
         base.Dispose(disposing);
     }
