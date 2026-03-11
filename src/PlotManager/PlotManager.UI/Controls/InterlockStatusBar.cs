@@ -50,6 +50,9 @@ public class InterlockStatusBar : UserControl
     private readonly SolidBrush _dimBrush = new(DimColor);
     private readonly SolidBrush _labelBrush = new(Color.FromArgb(140, 140, 140));
     private readonly Pen _separatorPen = new(Color.FromArgb(60, 60, 65), 1);
+    // GDI-FIX: cache fonts — creating Font in OnPaint allocates GDI every 500ms blink tick
+    private readonly Font _indicatorFont     = new("Segoe UI", 9f);
+    private readonly Font _indicatorBoldFont = new("Segoe UI Semibold", 9f);
 
     public InterlockStatusBar()
     {
@@ -113,8 +116,9 @@ public class InterlockStatusBar : UserControl
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-        using var font = new Font("Segoe UI", 9f);
-        using var boldFont = new Font("Segoe UI Semibold", 9f);
+        // GDI-FIX: use cached fonts (no allocation per frame)
+        Font font     = _indicatorFont;
+        Font boldFont = _indicatorBoldFont;
 
         float x = 12;
         float y = (Height - 20) / 2f;
@@ -225,13 +229,15 @@ public class InterlockStatusBar : UserControl
         {
             _blinkTimer.Stop();
             _blinkTimer.Dispose();
-            // P4 FIX: dispose cached GDI objects
+            // P4 FIX + GDI-FIX: dispose all cached GDI objects
             _greenBrush.Dispose();
             _redBrush.Dispose();
             _yellowBrush.Dispose();
             _dimBrush.Dispose();
             _labelBrush.Dispose();
             _separatorPen.Dispose();
+            _indicatorFont.Dispose();
+            _indicatorBoldFont.Dispose();
         }
         base.Dispose(disposing);
     }

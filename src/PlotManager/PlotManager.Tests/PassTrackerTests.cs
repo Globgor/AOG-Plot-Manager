@@ -272,7 +272,7 @@ public class PassTrackerTests
     public void StatusText_OutsideGrid()
     {
         var tracker = new PassTracker();
-        Assert.Contains("Ожидание", tracker.GetStatusText());
+        Assert.Contains("Очікування", tracker.GetStatusText());
     }
 
     [Fact]
@@ -285,7 +285,7 @@ public class PassTrackerTests
         tracker.Update(GetPlotCenter(grid, 0, 0), 5.0, 5.0, 200);
         string status = tracker.GetStatusText();
 
-        Assert.Contains("Проход 1", status);
+        Assert.Contains("Прохід 1", status);
         Assert.Contains("5.0", status);
     }
 }

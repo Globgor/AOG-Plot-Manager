@@ -200,22 +200,26 @@ public class SpatialEngine
         _trialMap = trialMap ?? throw new ArgumentNullException(nameof(trialMap));
         _routing = routing ?? throw new ArgumentNullException(nameof(routing));
 
-        // T2 FIX: Validate that every grid cell has a TrialMap assignment
-        var missingPlots = new List<string>();
-        for (int r = 0; r < grid.Rows; r++)
+        // T2 FIX: Validate that every grid cell has a TrialMap assignment.
+        // Exception: if PlotAssignments is empty (e.g. ResumeSession without re-loading CSV),
+        // skip silently — operator must load trial map before activating sections.
+        if (trialMap.PlotAssignments.Count > 0)
         {
-            for (int c = 0; c < grid.Columns; c++)
+            var missingPlots = new List<string>();
+            for (int r = 0; r < grid.Rows; r++)
             {
-                string plotId = $"R{r + 1}C{c + 1}";
-                if (trialMap.GetProduct(r, c) == null)
-                    missingPlots.Add(plotId);
+                for (int c = 0; c < grid.Columns; c++)
+                {
+                    if (trialMap.GetProduct(r, c) == null)
+                        missingPlots.Add($"R{r + 1}C{c + 1}");
+                }
             }
+            if (missingPlots.Count > 0)
+                throw new ArgumentException(
+                    $"TrialMap is missing assignments for {missingPlots.Count} plots: " +
+                    $"{string.Join(", ", missingPlots.Take(5))}" +
+                    (missingPlots.Count > 5 ? $"... and {missingPlots.Count - 5} more" : ""));
         }
-        if (missingPlots.Count > 0)
-            throw new ArgumentException(
-                $"TrialMap is missing assignments for {missingPlots.Count} plots: " +
-                $"{string.Join(", ", missingPlots.Take(5))}" +
-                (missingPlots.Count > 5 ? $"... and {missingPlots.Count - 5} more" : ""));
 
         // Cache grid bounds
         Plot first = _grid.Plots[0, 0];

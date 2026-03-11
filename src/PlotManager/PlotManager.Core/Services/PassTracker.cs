@@ -302,12 +302,12 @@ public class PassTracker
         lock (_lock)
         {
             if (CurrentPass == null || !CurrentPass.IsActive)
-                return "Ожидание прохода...";
+                return "Очікування проходу...";
 
-            return $"Проход {CurrentPass.PassNumber} " +
+            return $"Прохід {CurrentPass.PassNumber} " +
                 $"(Кол. {CurrentPass.ColumnIndex + 1}, {(CurrentPass.Direction == PassDirection.Up ? "↑" : "↓")}) " +
-                $"| Скорость: {CurrentPass.LockedSpeedKmh.ToString("F1", CultureInfo.InvariantCulture)} км/ч " +
-                $"| Макс. откл.: {CurrentPass.MaxSpeedDeviationPercent.ToString("F1", CultureInfo.InvariantCulture)}%";
+                $"| Швидкість: {CurrentPass.LockedSpeedKmh.ToString("F1", CultureInfo.InvariantCulture)} км/год " +
+                $"| Макс. відхил.: {CurrentPass.MaxSpeedDeviationPercent.ToString("F1", CultureInfo.InvariantCulture)}%";
         }
     }
 
