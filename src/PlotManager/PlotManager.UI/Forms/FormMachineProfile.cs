@@ -3,50 +3,61 @@ using System.Windows.Forms;
 namespace PlotManager.UI.Forms;
 
 using PlotManager.Core.Models;
+using PlotManager.Core.Services;
 
 /// <summary>
-/// Machine Profile editor — 5-tab dialog for all calibration parameters.
+/// Machine Profile editor — 6-tab dialog (nozzle-first) with dark theme.
+/// Integrates NozzleCatalog dropdown and live RateCalculator panel.
 /// Modal: returns DialogResult.OK with populated Profile.
 /// </summary>
 public class FormMachineProfile : Form
 {
     private readonly MachineProfile _profile;
+    private readonly NozzleCatalog _catalog;
 
-    // ── Tab 1: Identity + Fluid ──
-    private TextBox _txtProfileName = null!;
-    private TextBox _txtNotes = null!;
-    private ComboBox _cmbFluidType = null!;
-    private NumericUpDown _nudPressure = null!;
-    private NumericUpDown _nudAntennaHeight = null!;
+    // ── Tab 1: Nozzle + Calculator ──
+    private ComboBox _cmbNozzle = null!;
+    private NumericUpDown _nudSprayAngle = null!;
+    private NumericUpDown _nudFlowRate = null!;
+    private TextBox _txtNozzleColor = null!;
+    private NumericUpDown _nudTargetRate = null!;
+    private NumericUpDown _nudCalcPressure = null!;
+    private NumericUpDown _nudCalcSwath = null!;
+    private NumericUpDown _nudCalcNozzlesPerBoom = null!;
+    private Label _lblCalcSpeed = null!;
+    private Label _lblCalcRate = null!;
+    private Label _lblCalcWarnings = null!;
 
-    // ── Tab 2: Delays + Distances ──
+    // ── Tab 2: Booms ──
+    private DataGridView _dgvBooms = null!;
+
+    // ── Tab 3: Delays ──
     private NumericUpDown _nudActivationDelay = null!;
     private NumericUpDown _nudDeactivationDelay = null!;
     private NumericUpDown _nudPreActivation = null!;
     private NumericUpDown _nudPreDeactivation = null!;
 
-    // ── Tab 3: Speed + GPS ──
+    // ── Tab 4: Speed + GPS ──
     private NumericUpDown _nudTargetSpeed = null!;
     private NumericUpDown _nudSpeedTolerance = null!;
     private NumericUpDown _nudCogThreshold = null!;
     private NumericUpDown _nudRtkTimeout = null!;
     private NumericUpDown _nudGpsHz = null!;
 
-    // ── Tab 4: Booms ──
-    private DataGridView _dgvBooms = null!;
-
-    // ── Tab 5: Connections + Nozzle ──
+    // ── Tab 5: Connections ──
     private TextBox _txtTeensyPort = null!;
     private NumericUpDown _nudBaudRate = null!;
     private TextBox _txtWeatherPort = null!;
     private NumericUpDown _nudAogListenPort = null!;
     private NumericUpDown _nudAogSendPort = null!;
     private TextBox _txtAogHost = null!;
-    private TextBox _txtNozzleModel = null!;
-    private NumericUpDown _nudSprayAngle = null!;
-    private NumericUpDown _nudFlowRate = null!;
-    private TextBox _txtNozzleColor = null!;
-    private NumericUpDown _nudTargetRate = null!;
+
+    // ── Tab 6: Identity ──
+    private TextBox _txtProfileName = null!;
+    private TextBox _txtNotes = null!;
+    private ComboBox _cmbFluidType = null!;
+    private NumericUpDown _nudPressure = null!;
+    private NumericUpDown _nudAntennaHeight = null!;
 
     /// <summary>The configured profile (valid after DialogResult.OK).</summary>
     public MachineProfile Profile => _profile;
@@ -54,31 +65,37 @@ public class FormMachineProfile : Form
     public FormMachineProfile(MachineProfile? existingProfile = null)
     {
         _profile = existingProfile ?? MachineProfile.CreateDefault();
+        _catalog = NozzleCatalog.CreateDefault();
         InitializeComponents();
         PopulateFromProfile();
     }
 
     private void InitializeComponents()
     {
-        Text = "⚙ Machine Profile — Профиль Оборудования";
-        Size = new System.Drawing.Size(820, 680);
+        Text = "⚙ Machine Profile — Профіль Обладнання";
+        Size = new System.Drawing.Size(900, 720);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         Font = new System.Drawing.Font("Segoe UI", 9.5f);
+        BackColor = AppTheme.BgPrimary;
+        ForeColor = AppTheme.FgPrimary;
 
         var tabControl = new TabControl
         {
             Dock = DockStyle.Fill,
             Padding = new System.Drawing.Point(12, 6),
         };
+        AppTheme.StyleTabControl(tabControl);
 
-        tabControl.TabPages.Add(BuildTabGeneral());
+        // Nozzle first — this determines speed and flow rates
+        tabControl.TabPages.Add(BuildTabNozzle());
+        tabControl.TabPages.Add(BuildTabBooms());
         tabControl.TabPages.Add(BuildTabDelays());
         tabControl.TabPages.Add(BuildTabSpeedGps());
-        tabControl.TabPages.Add(BuildTabBooms());
         tabControl.TabPages.Add(BuildTabConnections());
+        tabControl.TabPages.Add(BuildTabGeneral());
 
         // ── Bottom buttons ──
         var panelButtons = new FlowLayoutPanel
@@ -87,20 +104,15 @@ public class FormMachineProfile : Form
             FlowDirection = FlowDirection.RightToLeft,
             Height = 50,
             Padding = new Padding(8),
+            BackColor = AppTheme.BgSecondary,
         };
 
-        var btnOk = new Button
-        {
-            Text = "✅ Сохранить", Width = 120, Height = 32,
-            DialogResult = DialogResult.OK,
-        };
-        var btnCancel = new Button
-        {
-            Text = "Отмена", Width = 100, Height = 32,
-            DialogResult = DialogResult.Cancel,
-        };
-        var btnSaveFile = new Button { Text = "💾 В файл", Width = 110, Height = 32 };
-        var btnLoadFile = new Button { Text = "📂 Из файла", Width = 110, Height = 32 };
+        var btnOk = AppTheme.MakeButton("✅", 120, AppTheme.Accent);
+        btnOk.DialogResult = DialogResult.OK;
+        var btnCancel = AppTheme.MakeButton("Скасувати", 100);
+        btnCancel.DialogResult = DialogResult.Cancel;
+        var btnSaveFile = AppTheme.MakeButton("💾 У файл", 110);
+        var btnLoadFile = AppTheme.MakeButton("📂 З файлу", 110);
 
         btnOk.Click += (_, _) => CollectToProfile();
         btnSaveFile.Click += OnSaveToFile;
@@ -115,95 +127,178 @@ public class FormMachineProfile : Form
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Tab 1: General — Профиль, жидкость, геометрия
+    // Tab 1: Nozzle + Calculator — determines speed/flow requirements
     // ════════════════════════════════════════════════════════════════════
-    private TabPage BuildTabGeneral()
+    private TabPage BuildTabNozzle()
     {
-        var tab = new TabPage("📋 Профиль");
+        var tab = new TabPage("💧 Форсунка");
         var p = MakePanel();
 
-        AddSectionHeader(p, "Идентификация", ref _row);
-        _txtProfileName = AddTextRow(p, "Имя профиля:");
-        _txtNotes = AddTextRow(p, "Заметки:");
+        AddSectionHeader(p, "Модель форсунки", ref _row);
 
-        AddSectionHeader(p, "Жидкость и давление", ref _row);
-        _cmbFluidType = AddComboRow(p, "Тип жидкости:",
-            Enum.GetNames(typeof(FluidType)));
-        _nudPressure = AddNumericRow(p, "Рабочее давление (бар):", 0.5m, 10, 0.5m, 3.0m);
+        // Nozzle dropdown populated from catalog
+        _cmbNozzle = AddComboRow(p, "Форсунка:",
+            _catalog.Nozzles.Select(n => n.ToString()).ToArray());
 
-        AddSectionHeader(p, "Геометрия", ref _row);
-        _nudAntennaHeight = AddNumericRow(p, "Высота антенны (м):", 0.5m, 5, 0.1m, 2.5m);
+        _nudSprayAngle = AddNumericRow(p, "Кут розпилу (°):", 60, 180, 5, 110);
+        _nudFlowRate = AddNumericRow(p, "Витрата (л/хв):", 0.1m, 10, 0.01m, 1.18m);
+        _txtNozzleColor = AddTextRow(p, "Колір (ISO):");
+        _nudTargetRate = AddNumericRow(p, "Норма внесення (л/га):", 10, 1000, 10, 200);
+
+        AddSectionHeader(p, "Калькулятор швидкості та тиску", ref _row);
+
+        _nudCalcPressure = AddNumericRow(p, "Робочий тиск (бар):", 0.5m, 10, 0.1m, 3.0m);
+        _nudCalcSwath = AddNumericRow(p, "Ширина захвату (м):", 0.1m, 50, 0.1m, 2.5m);
+        _nudCalcNozzlesPerBoom = AddNumericRow(p, "Форсунок на штангу:", 1, 20, 1, 1);
+
+        // Live calculation results
+        _lblCalcSpeed = AddResultLabel(p, "");
+        _lblCalcRate = AddResultLabel(p, "");
+        _lblCalcWarnings = AddResultLabel(p, "");
+        _lblCalcWarnings.ForeColor = AppTheme.Warning;
+
+        // Wire up live recalculation on any input change
+        _cmbNozzle.SelectedIndexChanged += OnNozzleSelectionChanged;
+        _nudTargetRate.ValueChanged += (_, _) => RecalcRate();
+        _nudCalcPressure.ValueChanged += (_, _) => RecalcRate();
+        _nudCalcSwath.ValueChanged += (_, _) => RecalcRate();
+        _nudCalcNozzlesPerBoom.ValueChanged += (_, _) => RecalcRate();
+        _nudFlowRate.ValueChanged += (_, _) => RecalcRate();
 
         tab.Controls.Add(p);
         return tab;
     }
 
-    // ════════════════════════════════════════════════════════════════════
-    // Tab 2: Delays — Задержки и отступы
-    // ════════════════════════════════════════════════════════════════════
-    private TabPage BuildTabDelays()
+    /// <summary>
+    /// When a nozzle is selected from the catalog dropdown, auto-fill fields.
+    /// </summary>
+    private void OnNozzleSelectionChanged(object? sender, EventArgs e)
     {
-        var tab = new TabPage("⏱ Задержки");
-        var p = MakePanel();
+        int idx = _cmbNozzle.SelectedIndex;
+        if (idx < 0 || idx >= _catalog.Nozzles.Count) return;
 
-        AddSectionHeader(p, "Гидравлические задержки (глобальные)", ref _row);
-        _nudActivationDelay = AddNumericRow(p,
-            "Задержка активации (мс):", 0, 2000, 10, 300);
-        _nudDeactivationDelay = AddNumericRow(p,
-            "Задержка деактивации (мс):", 0, 2000, 10, 150);
+        NozzleDefinition selected = _catalog.Nozzles[idx];
+        _nudSprayAngle.Value = selected.SprayAngleDegrees;
+        _nudFlowRate.Value = (decimal)selected.FlowRateLPerMinAtRef;
+        _txtNozzleColor.Text = selected.IsoColorCode;
+        _nudCalcPressure.Value = (decimal)selected.ReferencePressureBar;
 
-        AddInfoLabel(p,
-            "⚡ Если длины шлангов отличаются — задайте per-boom " +
-            "переопределения на вкладке «Штанги» (колонки Акт.мс / Деакт.мс, " +
-            "-1 = использовать глобальное).");
+        RecalcRate();
+    }
 
-        AddSectionHeader(p, "Пространственные отступы", ref _row);
-        _nudPreActivation = AddNumericRow(p,
-            "Преактивация (м):", 0, 5, 0.05m, 0.5m);
-        _nudPreDeactivation = AddNumericRow(p,
-            "Предеактивация (м):", 0, 5, 0.05m, 0.2m);
+    /// <summary>
+    /// Live rate/speed calculation using RateCalculator.
+    /// </summary>
+    private void RecalcRate()
+    {
+        try
+        {
+            // Build a temp NozzleDefinition from current UI values
+            var nozzle = new NozzleDefinition
+            {
+                Model = _cmbNozzle.Text,
+                FlowRateLPerMinAtRef = (double)_nudFlowRate.Value,
+                ReferencePressureBar = (double)_nudCalcPressure.Value,
+                SprayAngleDegrees = (int)_nudSprayAngle.Value,
+            };
 
-        tab.Controls.Add(p);
-        return tab;
+            double pressure = (double)_nudCalcPressure.Value;
+            double targetRate = (double)_nudTargetRate.Value;
+            double swath = (double)_nudCalcSwath.Value;
+            int nozzlesPerBoom = (int)_nudCalcNozzlesPerBoom.Value;
+
+            // Calculate recommended speed
+            double speed = RateCalculator.CalculateSpeedKmh(
+                nozzle, pressure, targetRate, swath, nozzlesPerBoom);
+
+            // Calculate actual rate at that speed
+            double actualRate = RateCalculator.CalculateRateLPerHa(
+                nozzle, pressure, speed, swath, nozzlesPerBoom);
+
+            // Validate
+            var result = RateCalculator.Validate(
+                nozzle, pressure, speed, targetRate, swath, nozzlesPerBoom);
+
+            _lblCalcSpeed.Text = $"🚜 Рекомендована швидкість: {speed:F2} км/год";
+            _lblCalcSpeed.ForeColor = speed >= 2 && speed <= 10
+                ? AppTheme.Success : AppTheme.Warning;
+
+            _lblCalcRate.Text = $"📊 Фактична норма: {actualRate:F1} л/га";
+            _lblCalcRate.ForeColor = AppTheme.Accent;
+
+            // Show warnings/errors
+            var msgs = new List<string>();
+            msgs.AddRange(result.Warnings.Select(w => $"⚠ {w}"));
+            msgs.AddRange(result.Errors.Select(e => $"❌ {e}"));
+            _lblCalcWarnings.Text = msgs.Count > 0
+                ? string.Join("\n", msgs)
+                : "✅ Параметри в нормі";
+            _lblCalcWarnings.ForeColor = result.IsValid
+                ? AppTheme.Success : AppTheme.Error;
+        }
+        catch
+        {
+            // Silently ignore calculation errors during editing
+            _lblCalcSpeed.Text = "";
+            _lblCalcRate.Text = "";
+            _lblCalcWarnings.Text = "";
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Tab 3: Speed + GPS
-    // ════════════════════════════════════════════════════════════════════
-    private TabPage BuildTabSpeedGps()
-    {
-        var tab = new TabPage("🚜 Скорость / GPS");
-        var p = MakePanel();
-
-        AddSectionHeader(p, "Скоростной коридор", ref _row);
-        _nudTargetSpeed = AddNumericRow(p,
-            "Целевая скорость (км/ч):", 1, 20, 0.5m, 5.0m);
-        _nudSpeedTolerance = AddNumericRow(p,
-            "Допуск ± (км/ч):", 0.1m, 5, 0.1m, 1.0m);
-
-        AddSectionHeader(p, "GPS / RTK", ref _row);
-        _nudRtkTimeout = AddNumericRow(p,
-            "Таймаут потери RTK (с):", 0, 30, 0.5m, 2.0m);
-        _nudGpsHz = AddNumericRow(p,
-            "Частота GPS (Гц):", 1, 20, 1, 10);
-
-        AddSectionHeader(p, "Крабовый ход (COG)", ref _row);
-        _nudCogThreshold = AddNumericRow(p,
-            "Порог Heading/COG (°):", 0.5m, 15, 0.5m, 3.0m);
-        AddInfoLabel(p,
-            "Если разница Heading − COG > порога → задние штанги " +
-            "проецируются по COG (компенсация бокового сноса на склоне).");
-
-        tab.Controls.Add(p);
-        return tab;
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    // Tab 4: Booms
+    // Tab 2: Booms — with add/remove buttons
     // ════════════════════════════════════════════════════════════════════
     private TabPage BuildTabBooms()
     {
         var tab = new TabPage("🔧 Штанги");
+
+        // Toolbar with add/remove buttons
+        var toolbar = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            Height = 40,
+            Padding = new Padding(4),
+            BackColor = AppTheme.BgSecondary,
+        };
+
+        var btnAdd = AppTheme.MakeButton("➕ Додати штангу", 160, AppTheme.Success);
+        var btnRemove = AppTheme.MakeButton("➖ Видалити обрані", 160, AppTheme.Error);
+        var lblCount = new Label
+        {
+            Text = "",
+            ForeColor = AppTheme.FgSecondary,
+            AutoSize = true,
+            Margin = new Padding(12, 8, 0, 0),
+        };
+
+        btnAdd.Click += (_, _) =>
+        {
+            int nextId = _dgvBooms.Rows.Count;
+            _dgvBooms.Rows.Add(
+                nextId, $"Boom {nextId + 1}", nextId,
+                "0,00", "0,00", "0,25", "70", "30", "-1", "-1", "0,00", true);
+            lblCount.Text = $"Штанг: {_dgvBooms.Rows.Count}";
+        };
+
+        btnRemove.Click += (_, _) =>
+        {
+            if (_dgvBooms.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Оберіть рядки для видалення.", "⚠",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            foreach (DataGridViewRow row in _dgvBooms.SelectedRows
+                .Cast<DataGridViewRow>().OrderByDescending(r => r.Index))
+            {
+                _dgvBooms.Rows.RemoveAt(row.Index);
+            }
+            lblCount.Text = $"Штанг: {_dgvBooms.Rows.Count}";
+        };
+
+        toolbar.Controls.AddRange(new Control[] { btnAdd, btnRemove, lblCount });
+
         _dgvBooms = new DataGridView
         {
             Dock = DockStyle.Fill,
@@ -211,40 +306,104 @@ public class FormMachineProfile : Form
             AllowUserToAddRows = false,
             AllowUserToDeleteRows = false,
             RowHeadersVisible = false,
-            SelectionMode = DataGridViewSelectionMode.CellSelect,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
             RowTemplate = { Height = 28 },
             ColumnHeadersHeight = 32,
             DefaultCellStyle = { Padding = new Padding(4, 2, 4, 2) },
         };
+        AppTheme.StyleDataGrid(_dgvBooms);
 
         _dgvBooms.Columns.AddRange(new DataGridViewColumn[]
         {
             new DataGridViewTextBoxColumn { HeaderText = "#", Name = "BoomId", ReadOnly = true, Width = 30 },
-            new DataGridViewTextBoxColumn { HeaderText = "Имя", Name = "Name", MinimumWidth = 60 },
+            new DataGridViewTextBoxColumn { HeaderText = "Ім'я", Name = "Name", MinimumWidth = 60 },
             new DataGridViewTextBoxColumn { HeaderText = "Канал", Name = "ValveChannel", Width = 45 },
-            new DataGridViewTextBoxColumn { HeaderText = "Y (м)", Name = "YOffset", Width = 50 },
-            new DataGridViewTextBoxColumn { HeaderText = "X (м)", Name = "XOffset", Width = 50 },
-            new DataGridViewTextBoxColumn { HeaderText = "Шир.", Name = "SprayWidth", Width = 45 },
+            new DataGridViewTextBoxColumn { HeaderText = "Y (м)", Name = "YOffset", Width = 55,
+                ToolTipText = "Зміщення від антени (- = позаду)" },
+            new DataGridViewTextBoxColumn { HeaderText = "X (м)", Name = "XOffset", Width = 55,
+                ToolTipText = "Зміщення від осі (+ = вправо)" },
+            new DataGridViewTextBoxColumn { HeaderText = "Шир.(м)", Name = "SprayWidth", Width = 55 },
             new DataGridViewTextBoxColumn { HeaderText = "Акт.%", Name = "ActOverlap", Width = 45 },
             new DataGridViewTextBoxColumn { HeaderText = "Деакт.%", Name = "DeactOverlap", Width = 50 },
             new DataGridViewTextBoxColumn { HeaderText = "Акт.мс", Name = "ActDelay", Width = 50,
-                ToolTipText = "-1 = глобальное значение" },
+                ToolTipText = "-1 = глобальне значення" },
             new DataGridViewTextBoxColumn { HeaderText = "Деакт.мс", Name = "DeactDelay", Width = 55,
-                ToolTipText = "-1 = глобальное значение" },
+                ToolTipText = "-1 = глобальне значення" },
             new DataGridViewTextBoxColumn { HeaderText = "Шланг(м)", Name = "HoseLen", Width = 55 },
             new DataGridViewCheckBoxColumn { HeaderText = "Вкл", Name = "Enabled", Width = 35 },
         });
 
         tab.Controls.Add(_dgvBooms);
+        tab.Controls.Add(toolbar);
         return tab;
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Tab 5: Connections + Nozzle
+    // Tab 3: Delays
+    // ════════════════════════════════════════════════════════════════════
+    private TabPage BuildTabDelays()
+    {
+        var tab = new TabPage("⏱ Затримки");
+        var p = MakePanel();
+
+        AddSectionHeader(p, "Гідравлічні затримки (глобальні)", ref _row);
+        _nudActivationDelay = AddNumericRow(p,
+            "Затримка активації (мс):", 0, 2000, 10, 300);
+        _nudDeactivationDelay = AddNumericRow(p,
+            "Затримка деактивації (мс):", 0, 2000, 10, 150);
+
+        AddInfoLabel(p,
+            "⚡ Якщо довжини шлангів відрізняються — задайте per-boom " +
+            "перевизначення на вкладці «Штанги» (колонки Акт.мс / Деакт.мс, " +
+            "-1 = використовувати глобальне).");
+
+        AddSectionHeader(p, "Просторові відступи", ref _row);
+        _nudPreActivation = AddNumericRow(p,
+            "Преактивація (м):", 0, 5, 0.01m, 0.50m);
+        _nudPreDeactivation = AddNumericRow(p,
+            "Предеактивація (м):", 0, 5, 0.01m, 0.20m);
+
+        tab.Controls.Add(p);
+        return tab;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Tab 4: Speed + GPS
+    // ════════════════════════════════════════════════════════════════════
+    private TabPage BuildTabSpeedGps()
+    {
+        var tab = new TabPage("🚜 Швидкість / GPS");
+        var p = MakePanel();
+
+        AddSectionHeader(p, "Швидкісний коридор", ref _row);
+        _nudTargetSpeed = AddNumericRow(p,
+            "Цільова швидкість (км/год):", 1, 20, 0.5m, 5.0m);
+        _nudSpeedTolerance = AddNumericRow(p,
+            "Допуск ± (км/год):", 0.1m, 5, 0.1m, 1.0m);
+
+        AddSectionHeader(p, "GPS / RTK", ref _row);
+        _nudRtkTimeout = AddNumericRow(p,
+            "Таймаут втрати RTK (с):", 0, 30, 0.5m, 2.0m);
+        _nudGpsHz = AddNumericRow(p,
+            "Частота GPS (Гц):", 1, 20, 1, 10);
+
+        AddSectionHeader(p, "Крабовий хід (COG)", ref _row);
+        _nudCogThreshold = AddNumericRow(p,
+            "Поріг Heading/COG (°):", 0.5m, 15, 0.5m, 3.0m);
+        AddInfoLabel(p,
+            "Якщо різниця Heading − COG > порога → задні штанги " +
+            "проєкуються по COG (компенсація бокового зносу на схилі).");
+
+        tab.Controls.Add(p);
+        return tab;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Tab 5: Connections (serial + UDP)
     // ════════════════════════════════════════════════════════════════════
     private TabPage BuildTabConnections()
     {
-        var tab = new TabPage("🔌 Связь / Форсунка");
+        var tab = new TabPage("🔌 Зв'язок");
         var p = MakePanel();
 
         AddSectionHeader(p, "Teensy", ref _row);
@@ -253,18 +412,35 @@ public class FormMachineProfile : Form
 
         AddSectionHeader(p, "AgOpenGPS (UDP)", ref _row);
         _txtAogHost = AddTextRow(p, "AOG Host:");
-        _nudAogListenPort = AddNumericRow(p, "Порт приёма:", 1024, 65535, 1, 9999);
-        _nudAogSendPort = AddNumericRow(p, "Порт отправки:", 1024, 65535, 1, 9998);
+        _nudAogListenPort = AddNumericRow(p, "Порт прийому:", 1024, 65535, 1, 8888);
+        _nudAogSendPort = AddNumericRow(p, "Порт відправки:", 1024, 65535, 1, 9999);
 
-        AddSectionHeader(p, "Метеостанция", ref _row);
-        _txtWeatherPort = AddTextRow(p, "COM-порт (пусто = выкл):");
+        AddSectionHeader(p, "Метеостанція", ref _row);
+        _txtWeatherPort = AddTextRow(p, "COM-порт (пусто = вимк):");
 
-        AddSectionHeader(p, "Форсунка (для отчётов)", ref _row);
-        _txtNozzleModel = AddTextRow(p, "Модель:");
-        _nudSprayAngle = AddNumericRow(p, "Угол распыла (°):", 60, 180, 5, 110);
-        _nudFlowRate = AddNumericRow(p, "Расход (л/мин):", 0.1m, 10, 0.1m, 1.2m);
-        _txtNozzleColor = AddTextRow(p, "Цвет (ISO):");
-        _nudTargetRate = AddNumericRow(p, "Норма (л/га):", 10, 1000, 10, 200);
+        tab.Controls.Add(p);
+        return tab;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Tab 6: General identity (moved to last — rarely changed)
+    // ════════════════════════════════════════════════════════════════════
+    private TabPage BuildTabGeneral()
+    {
+        var tab = new TabPage("📋 Профіль");
+        var p = MakePanel();
+
+        AddSectionHeader(p, "Ідентифікація", ref _row);
+        _txtProfileName = AddTextRow(p, "Ім'я профілю:");
+        _txtNotes = AddTextRow(p, "Нотатки:");
+
+        AddSectionHeader(p, "Рідина та тиск", ref _row);
+        _cmbFluidType = AddComboRow(p, "Тип рідини:",
+            Enum.GetNames(typeof(FluidType)));
+        _nudPressure = AddNumericRow(p, "Робочий тиск (бар):", 0.5m, 10, 0.5m, 3.0m);
+
+        AddSectionHeader(p, "Геометрія", ref _row);
+        _nudAntennaHeight = AddNumericRow(p, "Висота антени (м):", 0.5m, 5, 0.01m, 2.50m);
 
         tab.Controls.Add(p);
         return tab;
@@ -276,27 +452,27 @@ public class FormMachineProfile : Form
 
     private void PopulateFromProfile()
     {
-        // Tab 1
+        // Tab 6: Identity
         _txtProfileName.Text = _profile.ProfileName;
         _txtNotes.Text = _profile.Notes;
         _cmbFluidType.SelectedIndex = (int)_profile.FluidType;
         _nudPressure.Value = (decimal)_profile.OperatingPressureBar;
         _nudAntennaHeight.Value = (decimal)_profile.AntennaHeightMeters;
 
-        // Tab 2
+        // Tab 3: Delays
         _nudActivationDelay.Value = (decimal)_profile.SystemActivationDelayMs;
         _nudDeactivationDelay.Value = (decimal)_profile.SystemDeactivationDelayMs;
         _nudPreActivation.Value = (decimal)_profile.PreActivationMeters;
         _nudPreDeactivation.Value = (decimal)_profile.PreDeactivationMeters;
 
-        // Tab 3
+        // Tab 4: Speed
         _nudTargetSpeed.Value = (decimal)_profile.TargetSpeedKmh;
         _nudSpeedTolerance.Value = (decimal)_profile.SpeedToleranceKmh;
         _nudRtkTimeout.Value = (decimal)_profile.RtkLossTimeoutSeconds;
         _nudGpsHz.Value = _profile.GpsUpdateRateHz;
         _nudCogThreshold.Value = (decimal)_profile.CogHeadingThresholdDegrees;
 
-        // Tab 4 — booms grid
+        // Tab 2: Booms (centimeter precision)
         _dgvBooms.Rows.Clear();
         foreach (BoomProfile bp in _profile.Booms)
         {
@@ -304,8 +480,8 @@ public class FormMachineProfile : Form
                 bp.BoomId,
                 bp.Name,
                 bp.ValveChannel,
-                bp.YOffsetMeters.ToString("F3"),
-                bp.XOffsetMeters.ToString("F3"),
+                bp.YOffsetMeters.ToString("F2"),
+                bp.XOffsetMeters.ToString("F2"),
                 bp.SprayWidthMeters.ToString("F2"),
                 bp.ActivationOverlapPercent.ToString("F0"),
                 bp.DeactivationOverlapPercent.ToString("F0"),
@@ -315,43 +491,53 @@ public class FormMachineProfile : Form
                 bp.Enabled);
         }
 
-        // Tab 5
+        // Tab 5: Connections
         _txtTeensyPort.Text = _profile.Connection.TeensyComPort;
         _nudBaudRate.Value = _profile.Connection.TeensyBaudRate;
         _txtAogHost.Text = _profile.Connection.AogHost;
         _nudAogListenPort.Value = _profile.Connection.AogUdpListenPort;
         _nudAogSendPort.Value = _profile.Connection.AogUdpSendPort;
         _txtWeatherPort.Text = _profile.Connection.WeatherComPort;
-        _txtNozzleModel.Text = _profile.Nozzle.Model;
+
+        // Tab 1: Nozzle — try to match from catalog by model name
         _nudSprayAngle.Value = _profile.Nozzle.SprayAngleDegrees;
         _nudFlowRate.Value = (decimal)_profile.Nozzle.FlowRateLPerMin;
         _txtNozzleColor.Text = _profile.Nozzle.ColorCode;
         _nudTargetRate.Value = (decimal)_profile.TargetRateLPerHa;
+        _nudCalcPressure.Value = (decimal)_profile.OperatingPressureBar;
+
+        // Auto-select catalog nozzle if model matches
+        int matchIdx = _catalog.Nozzles
+            .FindIndex(n => n.Model.Equals(
+                _profile.Nozzle.Model, StringComparison.OrdinalIgnoreCase));
+        _cmbNozzle.SelectedIndex = matchIdx >= 0 ? matchIdx : 0;
+
+        RecalcRate();
     }
 
     private void CollectToProfile()
     {
-        // Tab 1
+        // Tab 6: Identity
         _profile.ProfileName = _txtProfileName.Text;
         _profile.Notes = _txtNotes.Text;
         _profile.FluidType = (FluidType)_cmbFluidType.SelectedIndex;
         _profile.OperatingPressureBar = (double)_nudPressure.Value;
         _profile.AntennaHeightMeters = (double)_nudAntennaHeight.Value;
 
-        // Tab 2
+        // Tab 3: Delays
         _profile.SystemActivationDelayMs = (double)_nudActivationDelay.Value;
         _profile.SystemDeactivationDelayMs = (double)_nudDeactivationDelay.Value;
         _profile.PreActivationMeters = (double)_nudPreActivation.Value;
         _profile.PreDeactivationMeters = (double)_nudPreDeactivation.Value;
 
-        // Tab 3
+        // Tab 4: Speed
         _profile.TargetSpeedKmh = (double)_nudTargetSpeed.Value;
         _profile.SpeedToleranceKmh = (double)_nudSpeedTolerance.Value;
         _profile.RtkLossTimeoutSeconds = (double)_nudRtkTimeout.Value;
         _profile.GpsUpdateRateHz = (int)_nudGpsHz.Value;
         _profile.CogHeadingThresholdDegrees = (double)_nudCogThreshold.Value;
 
-        // Tab 4 — booms (R12 FIX: try-catch per row)
+        // Tab 2: Booms
         _profile.Booms.Clear();
         var boomErrors = new List<string>();
         foreach (DataGridViewRow r in _dgvBooms.Rows)
@@ -383,20 +569,25 @@ public class FormMachineProfile : Form
         if (boomErrors.Count > 0)
         {
             MessageBox.Show(
-                "Ошибки в данных штанг:\n\n" + string.Join("\n", boomErrors.Select(e => $"• {e}")),
-                "❌ Ошибка валидации", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            DialogResult = DialogResult.None; // R12 FIX: prevent close on error
+                "Помилки в даних штанг:\n\n" + string.Join("\n", boomErrors.Select(e => $"• {e}")),
+                "❌ Помилка валідації", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            DialogResult = DialogResult.None;
             return;
         }
 
-        // Tab 5
+        // Tab 5: Connections
         _profile.Connection.TeensyComPort = _txtTeensyPort.Text;
         _profile.Connection.TeensyBaudRate = (int)_nudBaudRate.Value;
         _profile.Connection.AogHost = _txtAogHost.Text;
         _profile.Connection.AogUdpListenPort = (int)_nudAogListenPort.Value;
         _profile.Connection.AogUdpSendPort = (int)_nudAogSendPort.Value;
         _profile.Connection.WeatherComPort = _txtWeatherPort.Text;
-        _profile.Nozzle.Model = _txtNozzleModel.Text;
+
+        // Tab 1: Nozzle
+        int nozzleIdx = _cmbNozzle.SelectedIndex;
+        _profile.Nozzle.Model = nozzleIdx >= 0 && nozzleIdx < _catalog.Nozzles.Count
+            ? _catalog.Nozzles[nozzleIdx].Model
+            : _cmbNozzle.Text;
         _profile.Nozzle.SprayAngleDegrees = (int)_nudSprayAngle.Value;
         _profile.Nozzle.FlowRateLPerMin = (double)_nudFlowRate.Value;
         _profile.Nozzle.ColorCode = _txtNozzleColor.Text;
@@ -404,7 +595,7 @@ public class FormMachineProfile : Form
 
         _profile.LastModifiedUtc = DateTime.UtcNow;
 
-        // R13 FIX: Validate before accepting
+        // Validate before accepting
         try
         {
             _profile.Validate();
@@ -412,9 +603,9 @@ public class FormMachineProfile : Form
         catch (InvalidOperationException ex)
         {
             MessageBox.Show(
-                $"Профиль невалиден:\n\n{ex.Message}",
-                "❌ Ошибка валидации", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            DialogResult = DialogResult.None; // Block close
+                $"Профіль невалідний:\n\n{ex.Message}",
+                "❌ Помилка валідації", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            DialogResult = DialogResult.None;
         }
     }
 
@@ -434,7 +625,7 @@ public class FormMachineProfile : Form
         {
             CollectToProfile();
             _profile.SaveToFile(dlg.FileName);
-            MessageBox.Show($"Профиль сохранён:\n{dlg.FileName}", "✅ Сохранено",
+            MessageBox.Show($"Профіль збережено:\n{dlg.FileName}", "✅ Збережено",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
@@ -455,7 +646,7 @@ public class FormMachineProfile : Form
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки:\n{ex.Message}", "❌ Ошибка",
+                MessageBox.Show($"Помилка завантаження:\n{ex.Message}", "❌ Помилка",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -483,7 +674,7 @@ public class FormMachineProfile : Form
         dst.Nozzle = src.Nozzle;
         dst.TargetRateLPerHa = src.TargetRateLPerHa;
 
-        // R14 FIX: Deep-copy Booms to prevent mutating source
+        // Deep-copy Booms to prevent source mutation
         dst.Booms = src.Booms.Select(b => new BoomProfile
         {
             BoomId = b.BoomId,
@@ -502,7 +693,7 @@ public class FormMachineProfile : Form
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Layout helpers — proper spacing
+    // Layout helpers — dark theme with proper spacing
     // ════════════════════════════════════════════════════════════════════
 
     private int _row;
@@ -510,18 +701,21 @@ public class FormMachineProfile : Form
     private TableLayoutPanel MakePanel()
     {
         _row = 0;
-        return new TableLayoutPanel
+        var p = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             ColumnStyles =
             {
-                new ColumnStyle(SizeType.Percent, 45),
-                new ColumnStyle(SizeType.Percent, 55),
+                new ColumnStyle(SizeType.Percent, 42),
+                new ColumnStyle(SizeType.Percent, 58),
             },
             AutoScroll = true,
             Padding = new Padding(16, 12, 16, 12),
+            BackColor = AppTheme.BgPrimary,
+            ForeColor = AppTheme.FgPrimary,
         };
+        return p;
     }
 
     private static void AddSectionHeader(TableLayoutPanel p, string text, ref int row)
@@ -530,6 +724,7 @@ public class FormMachineProfile : Form
         {
             Text = text,
             Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Bold),
+            ForeColor = AppTheme.Accent,
             AutoSize = true,
             Margin = new Padding(0, row == 0 ? 0 : 14, 0, 6),
         };
@@ -542,14 +737,31 @@ public class FormMachineProfile : Form
         var lbl = new Label
         {
             Text = text,
-            ForeColor = System.Drawing.Color.FromArgb(100, 100, 100),
+            ForeColor = AppTheme.FgSecondary,
             Font = new System.Drawing.Font("Segoe UI", 8.5f, System.Drawing.FontStyle.Italic),
             AutoSize = true,
-            MaximumSize = new System.Drawing.Size(700, 0),
+            MaximumSize = new System.Drawing.Size(750, 0),
             Margin = new Padding(4, 2, 4, 8),
         };
         p.SetColumnSpan(lbl, 2);
         p.Controls.Add(lbl, 0, _row++);
+    }
+
+    /// <summary>Adds a result label spanning 2 columns (for calculator output).</summary>
+    private Label AddResultLabel(TableLayoutPanel p, string text)
+    {
+        var lbl = new Label
+        {
+            Text = text,
+            ForeColor = AppTheme.Accent,
+            Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold),
+            AutoSize = true,
+            MaximumSize = new System.Drawing.Size(750, 0),
+            Margin = new Padding(4, 4, 4, 2),
+        };
+        p.SetColumnSpan(lbl, 2);
+        p.Controls.Add(lbl, 0, _row++);
+        return lbl;
     }
 
     private TextBox AddTextRow(TableLayoutPanel p, string label)
@@ -559,11 +771,15 @@ public class FormMachineProfile : Form
             Text = label,
             Dock = DockStyle.Fill,
             TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+            ForeColor = AppTheme.FgPrimary,
             Margin = new Padding(0, 0, 8, 4),
         }, 0, _row);
         var tb = new TextBox
         {
             Dock = DockStyle.Fill,
+            BackColor = AppTheme.BgSecondary,
+            ForeColor = AppTheme.FgPrimary,
+            BorderStyle = BorderStyle.FixedSingle,
             Margin = new Padding(0, 2, 0, 4),
         };
         p.Controls.Add(tb, 1, _row++);
@@ -578,6 +794,7 @@ public class FormMachineProfile : Form
             Text = label,
             Dock = DockStyle.Fill,
             TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+            ForeColor = AppTheme.FgPrimary,
             Margin = new Padding(0, 0, 8, 4),
         }, 0, _row);
         var nud = new NumericUpDown
@@ -586,6 +803,8 @@ public class FormMachineProfile : Form
             Minimum = min, Maximum = max,
             Increment = increment, Value = defaultVal,
             DecimalPlaces = increment < 1 ? 2 : 0,
+            BackColor = AppTheme.BgSecondary,
+            ForeColor = AppTheme.FgPrimary,
             Margin = new Padding(0, 2, 0, 4),
         };
         p.Controls.Add(nud, 1, _row++);
@@ -599,12 +818,16 @@ public class FormMachineProfile : Form
             Text = label,
             Dock = DockStyle.Fill,
             TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+            ForeColor = AppTheme.FgPrimary,
             Margin = new Padding(0, 0, 8, 4),
         }, 0, _row);
         var cmb = new ComboBox
         {
             Dock = DockStyle.Fill,
             DropDownStyle = ComboBoxStyle.DropDownList,
+            BackColor = AppTheme.BgSecondary,
+            ForeColor = AppTheme.FgPrimary,
+            FlatStyle = FlatStyle.Flat,
             Margin = new Padding(0, 2, 0, 4),
         };
         cmb.Items.AddRange(items);

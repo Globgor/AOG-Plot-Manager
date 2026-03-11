@@ -36,34 +36,40 @@ public sealed class RoutingPanel : UserControl
 
     private void BuildLayout()
     {
-        // ── Header ──
+        // ── Header with detailed explanation ──
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 130,
+            Height = 180,
             BackColor = AppTheme.BgPrimary,
             Padding = new Padding(20, 16, 20, 8),
         };
 
         var header = new Label
         {
-            Text = "Крок 4: Маршрутизація (Routing)",
+            Text = "Крок 4: Маршрутизація продуктів → Секції штанги",
             Font = AppTheme.FontHeading,
             ForeColor = AppTheme.TextPrimary,
             AutoSize = true,
-            Location = new Point(20, 16),
+            Location = new Point(20, 12),
         };
         topPanel.Controls.Add(header);
 
         var subtitle = new Label
         {
-            Text = "Призначте кожен продукт фізичній секції штанги (1–14).\n" +
-                   "Кожна секція відповідає одному каністру на штанзі обприскувача.",
+            Text = "⚙ ЩО ЦЕ ТАКЕ:\n" +
+                   "Кожен продукт із Trial Map потрібно призначити конкретній " +
+                   "фізичній секції штанги (1–14).\n" +
+                   "Секція = один каністр/канал клапана на обприскувачі.\n\n" +
+                   "📋 ЯК НАЛАШТУВАТИ:\n" +
+                   "1. Оберіть номер секції для кожного продукту зі списку\n" +
+                   "2. Один продукт = одна секція (дублікати заборонені)\n" +
+                   "3. Натисніть 💾 Зберегти для підтвердження",
             Font = AppTheme.FontSmall,
-            ForeColor = AppTheme.TextDim,
+            ForeColor = AppTheme.TextSecondary,
             AutoSize = true,
             MaximumSize = new Size(800, 0),
-            Location = new Point(20, 44),
+            Location = new Point(20, 40),
         };
         topPanel.Controls.Add(subtitle);
 
@@ -71,7 +77,7 @@ public sealed class RoutingPanel : UserControl
         {
             Text = "💾  Зберегти маршрутизацію",
             Size = new Size(220, 40),
-            Location = new Point(20, 80),
+            Location = new Point(20, 132),
             Enabled = false,
         };
         AppTheme.StyleButton(_btnSave, AppTheme.AccentOrange);
@@ -80,11 +86,11 @@ public sealed class RoutingPanel : UserControl
 
         _lblStatus = new Label
         {
-            Text = "Спочатку імпортуйте Trial Map (Крок 3)",
+            Text = "⏳ Спочатку імпортуйте Trial Map (Крок 3)",
             Font = AppTheme.FontSmall,
             ForeColor = AppTheme.TextDim,
             AutoSize = true,
-            Location = new Point(260, 88),
+            Location = new Point(260, 140),
         };
         topPanel.Controls.Add(_lblStatus);
 

@@ -24,6 +24,7 @@ public sealed class GridSetupPanel : UserControl
     private NumericUpDown _nudLatitude = null!;
     private NumericUpDown _nudLongitude = null!;
     private NumericUpDown _nudHeading = null!;
+    private ComboBox _cmbDirection = null!;
     private Button _btnGenerate = null!;
     private Label _lblGridInfo = null!;
     private PlotGridPreview _gridPreview = null!;
@@ -82,25 +83,31 @@ public sealed class GridSetupPanel : UserControl
         inputLayout.SetColumnSpan(header, 2);
         inputLayout.Controls.Add(header, 0, row++);
 
-        // Plot Dimensions
+        // Plot Dimensions (centimeter precision)
         AddSectionLabel(inputLayout, "Розміри делянки", ref row);
-        _nudPlotWidth = AddNumericRow(inputLayout, "Ширина (м):", 3.0m, 0.1m, 100m, 1, ref row);
-        _nudPlotLength = AddNumericRow(inputLayout, "Довжина (м):", 10.0m, 0.1m, 500m, 1, ref row);
+        _nudPlotWidth = AddNumericRow(inputLayout, "Ширина (м):", 2.80m, 0.01m, 100m, 2, ref row);
+        _nudPlotLength = AddNumericRow(inputLayout, "Довжина (м):", 10.24m, 0.01m, 500m, 2, ref row);
 
-        // Buffers
+        // Buffers (centimeter precision)
         AddSectionLabel(inputLayout, "Алеї / Буфери", ref row);
-        _nudBufferWidth = AddNumericRow(inputLayout, "Бокова (м):", 0.5m, 0m, 10m, 1, ref row);
-        _nudBufferLength = AddNumericRow(inputLayout, "Торцева (м):", 1.0m, 0m, 20m, 1, ref row);
+        _nudBufferWidth = AddNumericRow(inputLayout, "Бокова (м):", 0.00m, 0.00m, 10m, 2, ref row);
+        _nudBufferLength = AddNumericRow(inputLayout, "Торцева (м):", 4.00m, 0.00m, 20m, 2, ref row);
 
         // Grid size
         AddSectionLabel(inputLayout, "Розмір сітки", ref row);
-        _nudRows = AddNumericRow(inputLayout, "Рядки:", 4m, 1m, 100m, 0, ref row);
-        _nudColumns = AddNumericRow(inputLayout, "Колонки:", 3m, 1m, 50m, 0, ref row);
+        _nudRows = AddNumericRow(inputLayout, "Рядки:", 10m, 1m, 100m, 0, ref row);
+        _nudColumns = AddNumericRow(inputLayout, "Колонки:", 20m, 1m, 50m, 0, ref row);
 
-        // Coordinates
+        // Direction of travel
+        AddSectionLabel(inputLayout, "Напрямок руху", ref row);
+        _cmbDirection = AddComboRow(inputLayout, "Рух:",
+            new[] { "Вгору (N→S)", "Вниз (S→N)", "Вправо (W→E)", "Вліво (E→W)" },
+            ref row);
+
+        // Coordinates (sub-meter precision: 8 decimals)
         AddSectionLabel(inputLayout, "Координати", ref row);
-        _nudLatitude = AddNumericRow(inputLayout, "Широта:", 50.000000m, -90m, 90m, 6, ref row);
-        _nudLongitude = AddNumericRow(inputLayout, "Довгота:", 30.000000m, -180m, 180m, 6, ref row);
+        _nudLatitude = AddNumericRow(inputLayout, "Широта:", 50.00000000m, -90m, 90m, 8, ref row);
+        _nudLongitude = AddNumericRow(inputLayout, "Довгота:", 30.00000000m, -180m, 180m, 8, ref row);
         _nudHeading = AddNumericRow(inputLayout, "Курс (°):", 0m, 0m, 360m, 1, ref row);
 
         // Generate button
@@ -182,8 +189,8 @@ public sealed class GridSetupPanel : UserControl
             _lblGridInfo.Text =
                 $"✅ Згенеровано: {CurrentGrid.Rows} × {CurrentGrid.Columns} " +
                 $"= {CurrentGrid.TotalPlots} делянок\n" +
-                $"    Розмір: {CurrentGrid.PlotWidthMeters:F1} × " +
-                $"{CurrentGrid.PlotLengthMeters:F1} м";
+                $"    Розмір: {CurrentGrid.PlotWidthMeters:F2} × " +
+                $"{CurrentGrid.PlotLengthMeters:F2} м";
             _lblGridInfo.ForeColor = AppTheme.AccentGreen;
 
             GridChanged?.Invoke(this, EventArgs.Empty);
@@ -248,5 +255,33 @@ public sealed class GridSetupPanel : UserControl
         p.Controls.Add(nud, 1, row++);
 
         return nud;
+    }
+
+    private static ComboBox AddComboRow(
+        TableLayoutPanel p, string label, string[] items, ref int row)
+    {
+        var lbl = new Label
+        {
+            Text = label,
+            Font = AppTheme.FontBody,
+            ForeColor = AppTheme.TextSecondary,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0, 2, 8, 4),
+        };
+        p.Controls.Add(lbl, 0, row);
+
+        var cmb = new ComboBox
+        {
+            Dock = DockStyle.Fill,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Margin = new Padding(0, 2, 0, 4),
+        };
+        AppTheme.StyleComboBox(cmb);
+        cmb.Items.AddRange(items);
+        if (cmb.Items.Count > 0) cmb.SelectedIndex = 0;
+        p.Controls.Add(cmb, 1, row++);
+
+        return cmb;
     }
 }

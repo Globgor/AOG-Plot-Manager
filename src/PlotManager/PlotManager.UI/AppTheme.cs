@@ -30,6 +30,14 @@ public static class AppTheme
     public static readonly Color AccentPurple = Color.FromArgb(156, 39, 176);
     public static readonly Color AccentRed = Color.FromArgb(244, 67, 54);
 
+    // ── Semantic aliases (used by FormMachineProfile and wizard panels) ──
+    public static Color Accent => AccentBlue;
+    public static Color FgPrimary => TextPrimary;
+    public static Color FgSecondary => TextSecondary;
+    public static Color Success => AccentGreen;
+    public static Color Warning => AccentOrange;
+    public static Color Error => AccentRed;
+
     // ── Borders ──
     public static readonly Color Border = Color.FromArgb(60, 65, 80);
     public static readonly Color BorderActive = AccentBlue;
@@ -209,5 +217,35 @@ public static class AppTheme
             MaximumSize = new Size(700, 0),
             Margin = new Padding(0, 2, 0, 8),
         };
+    }
+
+    /// <summary>Style a TabControl for dark theme (tab headers + pages).</summary>
+    public static void StyleTabControl(TabControl tc)
+    {
+        tc.BackColor = BgPrimary;
+        tc.ForeColor = TextPrimary;
+        foreach (TabPage page in tc.TabPages)
+        {
+            page.BackColor = BgPrimary;
+            page.ForeColor = TextPrimary;
+        }
+        // DrawMode custom rendering is not worth the complexity here;
+        // WinForms renders tab text using the ForeColor above.
+    }
+
+    /// <summary>Create a pre-styled button with the given text, width, and accent color.</summary>
+    public static Button MakeButton(string text, int width, Color? accent = null)
+    {
+        var btn = new Button
+        {
+            Text = text,
+            Width = width,
+            Height = 32,
+        };
+        if (accent.HasValue)
+            StyleButton(btn, accent.Value);
+        else
+            StyleButtonOutline(btn);
+        return btn;
     }
 }
