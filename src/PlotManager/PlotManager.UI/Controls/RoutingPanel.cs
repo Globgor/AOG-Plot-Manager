@@ -100,6 +100,9 @@ public sealed class RoutingPanel : UserControl
             Dock = DockStyle.Fill,
         };
         AppTheme.StyleDataGrid(_dgv);
+        
+        // Prevent default DataError dialog boxes on ComboBox cells
+        _dgv.DataError += (s, ev) => ev.ThrowException = false;
 
         var productCol = new DataGridViewTextBoxColumn
         {

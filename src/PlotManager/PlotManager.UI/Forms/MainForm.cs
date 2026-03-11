@@ -18,7 +18,7 @@ public partial class MainForm : Form
 {
     // ── Wizard step names (for nav bar) ──
     private static readonly string[] WizardSteps =
-        { "Профіль", "Сітка", "Trial Map", "Routing" };
+        { "Профіль", "Дизайн Досліду", "Локація (GPS)", "Routing" };
 
     // ── Wizard panels ──
     private WelcomePanel _welcomePanel = null!;
@@ -26,8 +26,8 @@ public partial class MainForm : Form
     private Panel _contentPanel = null!;
 
     private ProfileStepPanel _profileStep = null!;
-    private GridSetupPanel _gridStep = null!;
-    private TrialMapPanel _trialMapStep = null!;
+    private TrialDesignPanel _designStep = null!;
+    private FieldPlacementPanel _placementStep = null!;
     private RoutingPanel _routingStep = null!;
 
     // ── Core services (lazy-init when Pass Monitor opens) ──
@@ -102,17 +102,23 @@ public partial class MainForm : Form
         _profileStep = new ProfileStepPanel();
         _profileStep.ProfileChanged += (_, _) => UpdateNavState();
 
-        _gridStep = new GridSetupPanel();
-        _gridStep.GridChanged += (_, _) => UpdateNavState();
-
-        _trialMapStep = new TrialMapPanel();
-        _trialMapStep.TrialMapChanged += (_, _) =>
+        _designStep = new TrialDesignPanel();
+        _designStep.DesignChanged += (_, _) =>
         {
-            // Auto-populate routing grid when trial map loaded
-            if (_trialMapStep.CurrentTrialMap != null)
+            if (_designStep.CurrentTrialMap != null)
             {
-                _routingStep.SetTrialMap(_trialMapStep.CurrentTrialMap);
-                _gridStep.ApplyTrialMap(_trialMapStep.CurrentTrialMap);
+                _placementStep.SetLogicalTrialMap(_designStep.CurrentTrialMap);
+            }
+            UpdateNavState();
+        };
+
+        _placementStep = new FieldPlacementPanel();
+        _placementStep.PlacementChanged += (_, _) =>
+        {
+            // Auto-populate routing grid when trial map loaded & placed
+            if (_placementStep.PlacedTrialMap != null)
+            {
+                _routingStep.SetTrialMap(_placementStep.PlacedTrialMap);
             }
             UpdateNavState();
         };
@@ -195,8 +201,8 @@ public partial class MainForm : Form
         UserControl panel = _currentStep switch
         {
             0 => _profileStep,
-            1 => _gridStep,
-            2 => _trialMapStep,
+            1 => _designStep,
+            2 => _placementStep,
             3 => _routingStep,
             _ => _profileStep,
         };
@@ -220,8 +226,8 @@ public partial class MainForm : Form
             bool canAdvance = _currentStep switch
             {
                 0 => _profileStep.IsValid,
-                1 => _gridStep.IsValid,
-                2 => _trialMapStep.IsValid,
+                1 => _designStep.IsValid,
+                2 => _placementStep.IsValid,
                 _ => true,
             };
             _navBar.SetNextEnabled(canAdvance);
