@@ -79,7 +79,7 @@ public class TrialSystemTests
     public void NozzleCatalog_DefaultHas5Nozzles()
     {
         NozzleCatalog catalog = NozzleCatalog.CreateDefault();
-        Assert.Equal(5, catalog.Nozzles.Count);
+        Assert.Equal(15, catalog.Nozzles.Count);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class TrialSystemTests
         NozzleCatalog restored = NozzleCatalog.FromJson(json);
 
         Assert.Equal(original.Nozzles.Count, restored.Nozzles.Count);
-        Assert.Equal("TeeJet XR 110-03", restored.Nozzles[2].Model);
+        Assert.Equal("TeeJet XR 110-03", restored.Nozzles[3].Model);
     }
 
     // ════════════════════════════════════════════════════════════════════

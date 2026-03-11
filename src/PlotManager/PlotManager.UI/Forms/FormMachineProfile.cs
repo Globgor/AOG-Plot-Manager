@@ -16,16 +16,20 @@ public class FormMachineProfile : Form
     private readonly NozzleCatalog _catalog;
 
     // ── Tab 1: Nozzle + Calculator ──
+    // Inputs: speed + target rate → outputs: pressure + flow/min + nozzle suggestion
     private ComboBox _cmbNozzle = null!;
+    private ComboBox _cmbNozzleType = null!;
     private NumericUpDown _nudSprayAngle = null!;
     private NumericUpDown _nudFlowRate = null!;
     private TextBox _txtNozzleColor = null!;
     private NumericUpDown _nudTargetRate = null!;
-    private NumericUpDown _nudCalcPressure = null!;
+    private NumericUpDown _nudCalcSpeed = null!;
     private NumericUpDown _nudCalcSwath = null!;
     private NumericUpDown _nudCalcNozzlesPerBoom = null!;
-    private Label _lblCalcSpeed = null!;
-    private Label _lblCalcRate = null!;
+    private Label _lblCalcPressure = null!;
+    private Label _lblCalcFlowPerNozzle = null!;
+    private Label _lblCalcActualRate = null!;
+    private Label _lblCalcNozzleSuggestion = null!;
     private Label _lblCalcWarnings = null!;
 
     // ── Tab 2: Booms ──
@@ -73,7 +77,7 @@ public class FormMachineProfile : Form
     private void InitializeComponents()
     {
         Text = "⚙ Machine Profile — Профіль Обладнання";
-        Size = new System.Drawing.Size(900, 720);
+        Size = new System.Drawing.Size(900, 780);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -127,40 +131,54 @@ public class FormMachineProfile : Form
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Tab 1: Nozzle + Calculator — determines speed/flow requirements
+    // Tab 1: Nozzle + Calculator
+    // User inputs: speed + target rate → outputs: pressure + flow/min + nozzle
     // ════════════════════════════════════════════════════════════════════
     private TabPage BuildTabNozzle()
     {
         var tab = new TabPage("💧 Форсунка");
         var p = MakePanel();
 
-        AddSectionHeader(p, "Модель форсунки", ref _row);
+        // ── Section 1: What do you want? ──
+        AddSectionHeader(p, "📝 Що потрібно? (задайте параметри)", ref _row);
+        AddInfoLabel(p,
+            "Задайте бажану швидкість та норму внесення — " +
+            "калькулятор підкаже тиск та яку форсунку поставити.");
 
-        // Nozzle dropdown populated from catalog
+        _nudCalcSpeed = AddNumericRow(p, "🚜 Швидкість (км/год):", 1, 20, 0.5m, 6.0m);
+        _nudTargetRate = AddNumericRow(p, "💧 Норма внесення (л/га):", 10, 1000, 10, 200);
+        _nudCalcSwath = AddNumericRow(p, "📏 Ширина захвату (м):", 0.1m, 50, 0.01m, 2.80m);
+        _nudCalcNozzlesPerBoom = AddNumericRow(p, "🔢 Форсунок на штангу:", 1, 100, 1, 1);
+
+        // ── Section 2: Type filter ──
+        AddSectionHeader(p, "🔍 Тип форсунки", ref _row);
+        _cmbNozzleType = AddComboRow(p, "Тип:",
+            new[] { "Всі", "Щілинні (Slit)", "Інжекторні (Injector)" });
+
+        // ── Section 3: Current nozzle (manual or from catalog) ──
+        AddSectionHeader(p, "📦 Обрана форсунка", ref _row);
         _cmbNozzle = AddComboRow(p, "Форсунка:",
             _catalog.Nozzles.Select(n => n.ToString()).ToArray());
 
         _nudSprayAngle = AddNumericRow(p, "Кут розпилу (°):", 60, 180, 5, 110);
-        _nudFlowRate = AddNumericRow(p, "Витрата (л/хв):", 0.1m, 10, 0.01m, 1.18m);
+        _nudFlowRate = AddNumericRow(p, "Витрата при 3 бар (л/хв):", 0.1m, 10, 0.01m, 1.18m);
         _txtNozzleColor = AddTextRow(p, "Колір (ISO):");
-        _nudTargetRate = AddNumericRow(p, "Норма внесення (л/га):", 10, 1000, 10, 200);
 
-        AddSectionHeader(p, "Калькулятор швидкості та тиску", ref _row);
-
-        _nudCalcPressure = AddNumericRow(p, "Робочий тиск (бар):", 0.5m, 10, 0.1m, 3.0m);
-        _nudCalcSwath = AddNumericRow(p, "Ширина захвату (м):", 0.1m, 50, 0.1m, 2.5m);
-        _nudCalcNozzlesPerBoom = AddNumericRow(p, "Форсунок на штангу:", 1, 20, 1, 1);
-
-        // Live calculation results
-        _lblCalcSpeed = AddResultLabel(p, "");
-        _lblCalcRate = AddResultLabel(p, "");
+        // ── Section 4: Calculator output ──
+        AddSectionHeader(p, "📊 Результат розрахунку", ref _row);
+        _lblCalcPressure = AddResultLabel(p, "");
+        _lblCalcFlowPerNozzle = AddResultLabel(p, "");
+        _lblCalcActualRate = AddResultLabel(p, "");
+        _lblCalcNozzleSuggestion = AddResultLabel(p, "");
+        _lblCalcNozzleSuggestion.MaximumSize = new System.Drawing.Size(800, 0);
         _lblCalcWarnings = AddResultLabel(p, "");
-        _lblCalcWarnings.ForeColor = AppTheme.Warning;
+        _lblCalcWarnings.MaximumSize = new System.Drawing.Size(800, 0);
 
         // Wire up live recalculation on any input change
         _cmbNozzle.SelectedIndexChanged += OnNozzleSelectionChanged;
+        _cmbNozzleType.SelectedIndexChanged += OnNozzleTypeFilterChanged;
+        _nudCalcSpeed.ValueChanged += (_, _) => RecalcRate();
         _nudTargetRate.ValueChanged += (_, _) => RecalcRate();
-        _nudCalcPressure.ValueChanged += (_, _) => RecalcRate();
         _nudCalcSwath.ValueChanged += (_, _) => RecalcRate();
         _nudCalcNozzlesPerBoom.ValueChanged += (_, _) => RecalcRate();
         _nudFlowRate.ValueChanged += (_, _) => RecalcRate();
@@ -169,78 +187,133 @@ public class FormMachineProfile : Form
         return tab;
     }
 
-    /// <summary>
-    /// When a nozzle is selected from the catalog dropdown, auto-fill fields.
-    /// </summary>
+    /// <summary>Filter nozzle dropdown by type (slit, injector, or all).</summary>
+    private void OnNozzleTypeFilterChanged(object? sender, EventArgs e)
+    {
+        int filterIdx = _cmbNozzleType.SelectedIndex;
+
+        _cmbNozzle.Items.Clear();
+        var filtered = filterIdx switch
+        {
+            1 => _catalog.Nozzles.Where(n => n.Type == NozzleType.Slit),
+            2 => _catalog.Nozzles.Where(n => n.Type == NozzleType.Injector),
+            _ => _catalog.Nozzles.AsEnumerable(),
+        };
+        foreach (var n in filtered)
+            _cmbNozzle.Items.Add(n.ToString());
+
+        if (_cmbNozzle.Items.Count > 0) _cmbNozzle.SelectedIndex = 0;
+    }
+
+    /// <summary>When a nozzle is selected from dropdown, auto-fill spec fields.</summary>
     private void OnNozzleSelectionChanged(object? sender, EventArgs e)
     {
-        int idx = _cmbNozzle.SelectedIndex;
-        if (idx < 0 || idx >= _catalog.Nozzles.Count) return;
+        // Find selected nozzle in the full catalog by matching the display text
+        string selectedText = _cmbNozzle.SelectedItem?.ToString() ?? "";
+        NozzleDefinition? selected = _catalog.Nozzles
+            .FirstOrDefault(n => n.ToString() == selectedText);
 
-        NozzleDefinition selected = _catalog.Nozzles[idx];
+        if (selected == null) return;
+
         _nudSprayAngle.Value = selected.SprayAngleDegrees;
         _nudFlowRate.Value = (decimal)selected.FlowRateLPerMinAtRef;
         _txtNozzleColor.Text = selected.IsoColorCode;
-        _nudCalcPressure.Value = (decimal)selected.ReferencePressureBar;
 
         RecalcRate();
     }
 
     /// <summary>
-    /// Live rate/speed calculation using RateCalculator.
+    /// Inverse calculator: speed + rate → pressure + flow/min + nozzle suggestion.
+    /// This is the main calculation the user asked for.
     /// </summary>
     private void RecalcRate()
     {
         try
         {
-            // Build a temp NozzleDefinition from current UI values
-            var nozzle = new NozzleDefinition
-            {
-                Model = _cmbNozzle.Text,
-                FlowRateLPerMinAtRef = (double)_nudFlowRate.Value,
-                ReferencePressureBar = (double)_nudCalcPressure.Value,
-                SprayAngleDegrees = (int)_nudSprayAngle.Value,
-            };
-
-            double pressure = (double)_nudCalcPressure.Value;
+            double speed = (double)_nudCalcSpeed.Value;
             double targetRate = (double)_nudTargetRate.Value;
             double swath = (double)_nudCalcSwath.Value;
             int nozzlesPerBoom = (int)_nudCalcNozzlesPerBoom.Value;
 
-            // Calculate recommended speed
-            double speed = RateCalculator.CalculateSpeedKmh(
-                nozzle, pressure, targetRate, swath, nozzlesPerBoom);
+            // Build current nozzle from UI fields
+            var nozzle = new NozzleDefinition
+            {
+                Model = _cmbNozzle.Text,
+                FlowRateLPerMinAtRef = (double)_nudFlowRate.Value,
+                ReferencePressureBar = 3.0,
+                SprayAngleDegrees = (int)_nudSprayAngle.Value,
+            };
 
-            // Calculate actual rate at that speed
+            // ── Core inverse calculation ──
+            // Required flow per nozzle: Q = Rate × Speed × Swath / (600 × n)
+            double requiredFlowPerNozzle = targetRate * speed * swath
+                / (600.0 * nozzlesPerBoom);
+
+            // Required pressure for this flow rate
+            double requiredPressure = nozzle.GetPressureForFlowRate(requiredFlowPerNozzle);
+
+            // Actual rate at computed pressure (verification)
             double actualRate = RateCalculator.CalculateRateLPerHa(
-                nozzle, pressure, speed, swath, nozzlesPerBoom);
+                nozzle, requiredPressure, speed, swath, nozzlesPerBoom);
 
-            // Validate
-            var result = RateCalculator.Validate(
-                nozzle, pressure, speed, targetRate, swath, nozzlesPerBoom);
+            // ── Display results ──
+            _lblCalcPressure.Text = $"🔧 Потрібний тиск: {requiredPressure:F2} бар";
+            bool pressureOk = nozzle.IsPressureInRange(requiredPressure);
+            _lblCalcPressure.ForeColor = pressureOk ? AppTheme.Success : AppTheme.Error;
 
-            _lblCalcSpeed.Text = $"🚜 Рекомендована швидкість: {speed:F2} км/год";
-            _lblCalcSpeed.ForeColor = speed >= 2 && speed <= 10
-                ? AppTheme.Success : AppTheme.Warning;
+            _lblCalcFlowPerNozzle.Text =
+                $"💧 Вилив на форсунку: {requiredFlowPerNozzle:F2} л/хв";
+            _lblCalcFlowPerNozzle.ForeColor = AppTheme.Accent;
 
-            _lblCalcRate.Text = $"📊 Фактична норма: {actualRate:F1} л/га";
-            _lblCalcRate.ForeColor = AppTheme.Accent;
+            _lblCalcActualRate.Text = $"📊 Фактична норма: {actualRate:F1} л/га";
+            _lblCalcActualRate.ForeColor = AppTheme.Accent;
 
-            // Show warnings/errors
+            // ── Nozzle suggestions from catalog ──
+            // Find all nozzles that can work at a comfortable pressure (1-6 bar)
+            var suggestions = new List<string>();
+            foreach (var candidate in _catalog.Nozzles)
+            {
+                double candPressure = candidate.GetPressureForFlowRate(requiredFlowPerNozzle);
+                if (candidate.IsPressureInRange(candPressure))
+                {
+                    double candFlow = candidate.GetFlowRateAtPressure(candPressure);
+                    string typeTag = candidate.Type == NozzleType.Injector ? "інж" : "щіл";
+                    suggestions.Add(
+                        $"  ✅ {candidate.Model} [{typeTag}] → " +
+                        $"{candPressure:F1} бар, {candFlow:F2} л/хв");
+                }
+            }
+
+            _lblCalcNozzleSuggestion.Text = suggestions.Count > 0
+                ? "🔎 Підходящі форсунки:\n" + string.Join("\n", suggestions.Take(5))
+                : "❌ Жодна форсунка з каталогу не підходить!";
+            _lblCalcNozzleSuggestion.ForeColor = suggestions.Count > 0
+                ? AppTheme.Success : AppTheme.Error;
+
+            // ── Warnings ──
             var msgs = new List<string>();
-            msgs.AddRange(result.Warnings.Select(w => $"⚠ {w}"));
-            msgs.AddRange(result.Errors.Select(e => $"❌ {e}"));
+            if (!pressureOk)
+                msgs.Add($"⚠ Тиск {requiredPressure:F1} бар поза діапазоном " +
+                    $"({nozzle.MinPressureBar:F1}–{nozzle.MaxPressureBar:F1}) — " +
+                    $"оберіть іншу форсунку зі списку ☝");
+            if (speed < 2) msgs.Add("⚠ Швидкість < 2 км/год — дуже повільно.");
+            if (speed > 10) msgs.Add("⚠ Швидкість > 10 км/год — можливий знос.");
+            if (requiredPressure > 6) msgs.Add("💡 Спробуйте форсунку з більшим виливом (наприклад -04, -05).");
+            if (requiredPressure < 1) msgs.Add("💡 Спробуйте форсунку з меншим виливом (наприклад -01, -02).");
+
             _lblCalcWarnings.Text = msgs.Count > 0
                 ? string.Join("\n", msgs)
                 : "✅ Параметри в нормі";
-            _lblCalcWarnings.ForeColor = result.IsValid
-                ? AppTheme.Success : AppTheme.Error;
+            _lblCalcWarnings.ForeColor = msgs.Count > 0
+                ? AppTheme.Warning : AppTheme.Success;
         }
         catch
         {
             // Silently ignore calculation errors during editing
-            _lblCalcSpeed.Text = "";
-            _lblCalcRate.Text = "";
+            _lblCalcPressure.Text = "";
+            _lblCalcFlowPerNozzle.Text = "";
+            _lblCalcActualRate.Text = "";
+            _lblCalcNozzleSuggestion.Text = "";
             _lblCalcWarnings.Text = "";
         }
     }
@@ -504,7 +577,7 @@ public class FormMachineProfile : Form
         _nudFlowRate.Value = (decimal)_profile.Nozzle.FlowRateLPerMin;
         _txtNozzleColor.Text = _profile.Nozzle.ColorCode;
         _nudTargetRate.Value = (decimal)_profile.TargetRateLPerHa;
-        _nudCalcPressure.Value = (decimal)_profile.OperatingPressureBar;
+        _nudCalcSpeed.Value = (decimal)_profile.TargetSpeedKmh;
 
         // Auto-select catalog nozzle if model matches
         int matchIdx = _catalog.Nozzles
