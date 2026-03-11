@@ -397,16 +397,21 @@ public sealed class TrialDesignPanel : UserControl
                 var state = JsonSerializer.Deserialize<TrialDesignSaveState>(json);
                 if (state != null)
                 {
-                    _nudPlotWidth.Value = state.PlotWidth;
-                    _nudPlotLength.Value = state.PlotLength;
-                    _nudBufferWidth.Value = state.BufferWidth;
-                    _nudBufferLength.Value = state.BufferLength;
-                    _nudRows.Value = state.Rows;
-                    _nudColumns.Value = state.Columns;
-                    
+                    // Clamp all values to prevent ArgumentOutOfRangeException
+                    // if the saved file was created with different NUD bounds.
+                    static decimal Clamp(decimal v, NumericUpDown n) =>
+                        Math.Clamp(v, n.Minimum, n.Maximum);
+
+                    _nudPlotWidth.Value   = Clamp(state.PlotWidth,   _nudPlotWidth);
+                    _nudPlotLength.Value  = Clamp(state.PlotLength,  _nudPlotLength);
+                    _nudBufferWidth.Value = Clamp(state.BufferWidth, _nudBufferWidth);
+                    _nudBufferLength.Value= Clamp(state.BufferLength,_nudBufferLength);
+                    _nudRows.Value        = Clamp(state.Rows,        _nudRows);
+                    _nudColumns.Value     = Clamp(state.Columns,     _nudColumns);
+
                     if (state.DesignTypeIndex >= 0 && state.DesignTypeIndex < _cmbDesignType.Items.Count)
                         _cmbDesignType.SelectedIndex = state.DesignTypeIndex;
-                        
+
                     _txtTreatments.Text = state.TreatmentsText;
 
                     MessageBox.Show("Дизайн успішно завантажено. Натисніть 'Згенерувати Схему', щоб відтворити сітку.", "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
