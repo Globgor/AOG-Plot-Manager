@@ -198,7 +198,7 @@ public class FormPassMonitor : Form
         _btnPrime.MouseDown += (_, _) =>
         {
             if (_primeController == null) return;
-            double speed = _sensorHub.LatestSnapshot.IsStale ? 0 : 0; // Speed comes from GPS
+            double speed = _plotController.LastGps?.SpeedKmh ?? 0;
             bool plotMode = _plotController.PlotModeEnabled;
             _primeController.StartPrime(speed, plotMode);
         };
@@ -358,7 +358,7 @@ public class FormPassMonitor : Form
         {
             var gps = _plotController.LastGps;
             string? plotId = result.ActivePlot != null
-                ? $"R{result.ActivePlot.Row}C{result.ActivePlot.Column}"
+                ? $"R{result.ActivePlot.Row + 1}C{result.ActivePlot.Column + 1}"
                 : null;
             _trialLogger.UpdateState(
                 gps?.Latitude ?? 0, gps?.Longitude ?? 0,
