@@ -190,11 +190,11 @@ public class FieldContextPanel : UserControl
                 posText = plotId;
                 stateColor = AccentGreen.ToArgb() == 0 ? AccentGreen : AccentGreen;
                 break;
-            case BoomState.Approaching:
+            case BoomState.ApproachingPlot:
                 posText = "→ Подход";
                 stateColor = AccentOrange;
                 break;
-            case BoomState.Leaving:
+            case BoomState.LeavingPlot:
                 posText = "← Выход";
                 stateColor = AccentOrange;
                 break;

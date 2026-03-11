@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Windows.Forms;
 
 using PlotManager.Core.Models;
+using PlotManager.Core.Protocol;
 using PlotManager.Core.Services;
 using PlotManager.UI.Controls;
 
@@ -361,7 +362,7 @@ public class FormPassMonitor : Form
                 : null;
             _trialLogger.UpdateState(
                 gps?.Latitude ?? 0, gps?.Longitude ?? 0,
-                gps?.Heading ?? 0, gps?.SpeedKmh ?? 0,
+                gps?.HeadingDegrees ?? 0, gps?.SpeedKmh ?? 0,
                 plotId, result.ActiveProduct,
                 result.ValveMask, result.State,
                 _sensorHub.LatestSnapshot);
@@ -394,7 +395,7 @@ public class FormPassMonitor : Form
             _fieldContextPanel.UpdateGps(
                 gpsData?.Latitude ?? 0,
                 gpsData?.Longitude ?? 0,
-                gpsData?.Heading ?? 0);
+                gpsData?.HeadingDegrees ?? 0);
 
             // Track GPS time for stale detection
             _lastGpsTime = DateTime.UtcNow;

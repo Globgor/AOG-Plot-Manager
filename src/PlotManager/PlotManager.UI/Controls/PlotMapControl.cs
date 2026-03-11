@@ -3,6 +3,7 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 using PlotManager.Core.Models;
+using PlotManager.Core.Protocol;
 using PlotManager.Core.Services;
 
 namespace PlotManager.UI.Controls;
