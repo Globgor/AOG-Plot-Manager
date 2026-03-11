@@ -552,25 +552,30 @@ public class FormMachineProfile : Form
 
     private void PopulateFromProfile()
     {
+        // Clamp before assigning to NumericUpDown.Value to avoid ArgumentOutOfRangeException
+        // when a profile was saved with different NUD bounds.
+        static decimal C(decimal v, NumericUpDown n) => Math.Clamp(v, n.Minimum, n.Maximum);
+
         // Tab 6: Identity
         _txtProfileName.Text = _profile.ProfileName;
         _txtNotes.Text = _profile.Notes;
-        _cmbFluidType.SelectedIndex = (int)_profile.FluidType;
-        _nudPressure.Value = (decimal)_profile.OperatingPressureBar;
-        _nudAntennaHeight.Value = (decimal)_profile.AntennaHeightMeters;
+        _cmbFluidType.SelectedIndex = Math.Clamp(
+            (int)_profile.FluidType, 0, Math.Max(0, _cmbFluidType.Items.Count - 1));
+        _nudPressure.Value       = C((decimal)_profile.OperatingPressureBar, _nudPressure);
+        _nudAntennaHeight.Value  = C((decimal)_profile.AntennaHeightMeters,  _nudAntennaHeight);
 
         // Tab 3: Delays
-        _nudActivationDelay.Value = (decimal)_profile.SystemActivationDelayMs;
-        _nudDeactivationDelay.Value = (decimal)_profile.SystemDeactivationDelayMs;
-        _nudPreActivation.Value = (decimal)_profile.PreActivationMeters;
-        _nudPreDeactivation.Value = (decimal)_profile.PreDeactivationMeters;
+        _nudActivationDelay.Value   = C((decimal)_profile.SystemActivationDelayMs,  _nudActivationDelay);
+        _nudDeactivationDelay.Value = C((decimal)_profile.SystemDeactivationDelayMs,_nudDeactivationDelay);
+        _nudPreActivation.Value     = C((decimal)_profile.PreActivationMeters,       _nudPreActivation);
+        _nudPreDeactivation.Value   = C((decimal)_profile.PreDeactivationMeters,     _nudPreDeactivation);
 
         // Tab 4: Speed
-        _nudTargetSpeed.Value = (decimal)_profile.TargetSpeedKmh;
-        _nudSpeedTolerance.Value = (decimal)_profile.SpeedToleranceKmh;
-        _nudRtkTimeout.Value = (decimal)_profile.RtkLossTimeoutSeconds;
-        _nudGpsHz.Value = _profile.GpsUpdateRateHz;
-        _nudCogThreshold.Value = (decimal)_profile.CogHeadingThresholdDegrees;
+        _nudTargetSpeed.Value    = C((decimal)_profile.TargetSpeedKmh,              _nudTargetSpeed);
+        _nudSpeedTolerance.Value = C((decimal)_profile.SpeedToleranceKmh,           _nudSpeedTolerance);
+        _nudRtkTimeout.Value     = C((decimal)_profile.RtkLossTimeoutSeconds,        _nudRtkTimeout);
+        _nudGpsHz.Value          = C(_profile.GpsUpdateRateHz,                       _nudGpsHz);
+        _nudCogThreshold.Value   = C((decimal)_profile.CogHeadingThresholdDegrees,  _nudCogThreshold);
 
         // Tab 2: Booms (centimeter precision)
         _dgvBooms.Rows.Clear();
@@ -593,18 +598,18 @@ public class FormMachineProfile : Form
 
         // Tab 5: Connections
         _txtTeensyPort.Text = _profile.Connection.TeensyComPort;
-        _nudBaudRate.Value = _profile.Connection.TeensyBaudRate;
+        _nudBaudRate.Value = C(_profile.Connection.TeensyBaudRate, _nudBaudRate);
         _txtAogHost.Text = _profile.Connection.AogHost;
-        _nudAogListenPort.Value = _profile.Connection.AogUdpListenPort;
-        _nudAogSendPort.Value = _profile.Connection.AogUdpSendPort;
+        _nudAogListenPort.Value = C(_profile.Connection.AogUdpListenPort, _nudAogListenPort);
+        _nudAogSendPort.Value   = C(_profile.Connection.AogUdpSendPort,   _nudAogSendPort);
         _txtWeatherPort.Text = _profile.Connection.WeatherComPort;
 
         // Tab 1: Nozzle — try to match from catalog by model name
-        _nudSprayAngle.Value = _profile.Nozzle.SprayAngleDegrees;
-        _nudFlowRate.Value = (decimal)_profile.Nozzle.FlowRateLPerMin;
-        _txtNozzleColor.Text = _profile.Nozzle.ColorCode;
-        _nudTargetRate.Value = (decimal)_profile.TargetRateLPerHa;
-        _nudCalcSpeed.Value = (decimal)_profile.TargetSpeedKmh;
+        _nudSprayAngle.Value  = C(_profile.Nozzle.SprayAngleDegrees,          _nudSprayAngle);
+        _nudFlowRate.Value    = C((decimal)_profile.Nozzle.FlowRateLPerMin,   _nudFlowRate);
+        _txtNozzleColor.Text  = _profile.Nozzle.ColorCode;
+        _nudTargetRate.Value  = C((decimal)_profile.TargetRateLPerHa,          _nudTargetRate);
+        _nudCalcSpeed.Value   = C((decimal)_profile.TargetSpeedKmh,            _nudCalcSpeed);
 
         // Auto-select catalog nozzle if model matches
         int matchIdx = _catalog.Nozzles

@@ -126,7 +126,7 @@ public partial class MainForm : Form
         _routingStep = new RoutingPanel();
         _routingStep.RoutingChanged += (_, _) =>
         {
-            _gridStep.ApplyRouting(_routingStep.CurrentRouting);
+            // Grid preview removed; routing is stored in _routingStep.CurrentRouting
             UpdateNavState();
         };
 
@@ -273,8 +273,10 @@ public partial class MainForm : Form
         }
 
         _machineProfile = _profileStep.Profile;
-        var currentGrid = _gridStep.CurrentGrid;
-        var currentTrialMap = _trialMapStep.CurrentTrialMap;
+        // PlacedTrialMap contains both the physical grid and the plot assignments
+        var placedMap = _placementStep.PlacedTrialMap;
+        var currentGrid = placedMap?.Grid;
+        var currentTrialMap = placedMap;
         var currentRouting = _routingStep.CurrentRouting;
 
         // Lazy-init Core services
