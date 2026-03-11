@@ -113,13 +113,17 @@ public class FormMachineProfile : Form
         };
 
         var btnOk = AppTheme.MakeButton("✅", 120, AppTheme.Accent);
-        btnOk.DialogResult = DialogResult.OK;
+        // No DialogResult on button — CollectToProfile sets it after validation
         var btnCancel = AppTheme.MakeButton("Скасувати", 100);
         btnCancel.DialogResult = DialogResult.Cancel;
         var btnSaveFile = AppTheme.MakeButton("💾 У файл", 110);
         var btnLoadFile = AppTheme.MakeButton("📂 З файлу", 110);
 
-        btnOk.Click += (_, _) => CollectToProfile();
+        btnOk.Click += (_, _) =>
+        {
+            if (TryCollectToProfile())
+                DialogResult = DialogResult.OK;
+        };
         btnSaveFile.Click += OnSaveToFile;
         btnLoadFile.Click += OnLoadFromFile;
 
@@ -610,7 +614,8 @@ public class FormMachineProfile : Form
         RecalcRate();
     }
 
-    private void CollectToProfile()
+    /// <summary>Collects all form data into _profile. Returns false on validation error.</summary>
+    private bool TryCollectToProfile()
     {
         // Tab 6: Identity
         _profile.ProfileName = _txtProfileName.Text;
@@ -666,8 +671,7 @@ public class FormMachineProfile : Form
             MessageBox.Show(
                 "Помилки в даних штанг:\n\n" + string.Join("\n", boomErrors.Select(e => $"• {e}")),
                 "❌ Помилка валідації", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            DialogResult = DialogResult.None;
-            return;
+            return false;
         }
 
         // Tab 5: Connections
@@ -700,8 +704,10 @@ public class FormMachineProfile : Form
             MessageBox.Show(
                 $"Профіль невалідний:\n\n{ex.Message}",
                 "❌ Помилка валідації", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            DialogResult = DialogResult.None;
+            return false;
         }
+
+        return true;
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -718,7 +724,7 @@ public class FormMachineProfile : Form
         };
         if (dlg.ShowDialog() == DialogResult.OK)
         {
-            CollectToProfile();
+            TryCollectToProfile();
             _profile.SaveToFile(dlg.FileName);
             MessageBox.Show($"Профіль збережено:\n{dlg.FileName}", "✅ Збережено",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);

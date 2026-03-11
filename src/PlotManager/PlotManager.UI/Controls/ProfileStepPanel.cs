@@ -187,6 +187,7 @@ public sealed class ProfileStepPanel : UserControl
     {
         _profile = profile;
         UpdateSummary();
+        _summaryCard.Refresh();
         ProfileChanged?.Invoke(this, EventArgs.Empty);
     }
 

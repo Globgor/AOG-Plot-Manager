@@ -62,25 +62,28 @@ public sealed class WelcomePanel : UserControl
         const string title = "AOG Plot Manager";
         using var titleFont = new Font("Segoe UI", 28, FontStyle.Bold);
         var titleSize = g.MeasureString(title, titleFont);
+        float titleY = cy + 10;
         using (var brush = new SolidBrush(AppTheme.TextPrimary))
             g.DrawString(title, titleFont, brush,
-                cx - titleSize.Width / 2, cy + 10);
+                cx - titleSize.Width / 2, titleY);
 
-        // ── Version ──
+        // ── Version (below title, dynamic Y) ──
         const string version = "v0.2.0 — Wizard Edition";
-        using var versionFont = new Font("Segoe UI", 11);
+        using var versionFont = new Font("Segoe UI", 10);
         var versionSize = g.MeasureString(version, versionFont);
+        float versionY = titleY + titleSize.Height + 4;
         using (var brush = new SolidBrush(AppTheme.TextDim))
             g.DrawString(version, versionFont, brush,
-                cx - versionSize.Width / 2, cy + 52);
+                cx - versionSize.Width / 2, versionY);
 
-        // ── Subtitle ──
+        // ── Subtitle (below version, dynamic Y) ──
         const string subtitle = "Автоматизація польових дослідів з AgOpenGPS";
         using var subFont = new Font("Segoe UI", 10);
         var subSize = g.MeasureString(subtitle, subFont);
+        float subtitleY = versionY + versionSize.Height + 6;
         using (var brush = new SolidBrush(AppTheme.TextSecondary))
             g.DrawString(subtitle, subFont, brush,
-                cx - subSize.Width / 2, cy + 78);
+                cx - subSize.Width / 2, subtitleY);
     }
 
     protected override void OnResize(EventArgs e)
@@ -108,7 +111,7 @@ public sealed class WelcomePanel : UserControl
 
         _btnNew = new Button
         {
-            Text = "🆕  Нова настройка",
+            Text = "🆕  Нова",
             Size = new Size(220, 48),
         };
         AppTheme.StyleButton(_btnNew, AppTheme.AccentBlue);
@@ -118,7 +121,7 @@ public sealed class WelcomePanel : UserControl
 
         _btnLoad = new Button
         {
-            Text = "📂  Завантажити профіль",
+            Text = "📂  Завантажити",
             Size = new Size(220, 48),
         };
         AppTheme.StyleButtonOutline(_btnLoad);
