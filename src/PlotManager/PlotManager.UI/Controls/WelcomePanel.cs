@@ -3,19 +3,26 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
+using PlotManager.Core.Services;
+
 namespace PlotManager.UI.Controls;
 
 /// <summary>
 /// Welcome/splash screen — Step 0 of the wizard.
-/// Shows app name, version, and two action buttons.
+/// Shows app name, version, and three action buttons.
 /// </summary>
 public sealed class WelcomePanel : UserControl
 {
+    private readonly SessionService _sessionSvc = new();
+
     /// <summary>Fires when user wants to create a new setup.</summary>
     public event EventHandler? NewSetupRequested;
 
-    /// <summary>Fires when user wants to load an existing profile.</summary>
+    /// <summary>Fires when user wants to load an existing machine profile.</summary>
     public event EventHandler? LoadProfileRequested;
+
+    /// <summary>Fires when user wants to resume the last field session.</summary>
+    public event EventHandler<string>? ResumeSessionRequested;
 
     public WelcomePanel()
     {
@@ -101,13 +108,14 @@ public sealed class WelcomePanel : UserControl
 
     private Button? _btnNew;
     private Button? _btnLoad;
+    private Button? _btnResume;
+    private Label?  _lblLastSession;
 
     private void CreateButtons()
     {
         if (_btnNew != null) return; // Already created
 
-        int cx = Width / 2;
-
+        // ── New setup ──
         _btnNew = new Button
         {
             Text = "🆕  Нова",
@@ -118,6 +126,7 @@ public sealed class WelcomePanel : UserControl
         _btnNew.Click += (_, _) => NewSetupRequested?.Invoke(this, EventArgs.Empty);
         Controls.Add(_btnNew);
 
+        // ── Load machine profile ──
         _btnLoad = new Button
         {
             Text = "📂  Завантажити",
@@ -129,6 +138,37 @@ public sealed class WelcomePanel : UserControl
         _btnLoad.Click += (_, _) => LoadProfileRequested?.Invoke(this, EventArgs.Empty);
         Controls.Add(_btnLoad);
 
+        // ── Resume last session ──
+        string? lastSession = _sessionSvc.GetLatestSessionPath();
+        _btnResume = new Button
+        {
+            Text = "🔄  Продовжити",
+            Size = new Size(220, 48),
+            Enabled = lastSession != null,
+        };
+        AppTheme.StyleButtonOutline(_btnResume);
+        _btnResume.Font = new Font("Segoe UI", 11);
+        _btnResume.Height = 48;
+        _btnResume.Click += (_, _) =>
+        {
+            string? path = _sessionSvc.GetLatestSessionPath();
+            if (path != null) ResumeSessionRequested?.Invoke(this, path);
+        };
+        Controls.Add(_btnResume);
+
+        // ── Last session info label ──
+        _lblLastSession = new Label
+        {
+            Size = new Size(220, 16),
+            Font = new Font("Segoe UI", 7f),
+            ForeColor = AppTheme.TextDim,
+            Text = lastSession != null
+                ? $"↑ {Path.GetFileNameWithoutExtension(lastSession)}"
+                : "Немає збережених сесій",
+            TextAlign = ContentAlignment.MiddleCenter,
+        };
+        Controls.Add(_lblLastSession);
+
         LayoutButtons();
     }
 
@@ -139,7 +179,16 @@ public sealed class WelcomePanel : UserControl
         int cx = Width / 2;
         int buttonY = Height / 2 + 100;
 
-        _btnNew.Location = new Point(cx - _btnNew.Width / 2, buttonY);
-        _btnLoad.Location = new Point(cx - _btnLoad.Width / 2, buttonY + 60);
+        _btnNew.Location    = new Point(cx - _btnNew.Width / 2,    buttonY);
+        _btnLoad.Location   = new Point(cx - _btnLoad.Width / 2,   buttonY + 60);
+
+        if (_btnResume != null)
+            _btnResume.Location = new Point(cx - _btnResume.Width / 2, buttonY + 120);
+
+        if (_lblLastSession != null)
+        {
+            _lblLastSession.Width    = 220;
+            _lblLastSession.Location = new Point(cx - 110, buttonY + 170);
+        }
     }
 }

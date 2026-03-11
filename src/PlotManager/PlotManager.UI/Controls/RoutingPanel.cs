@@ -21,6 +21,16 @@ public sealed class RoutingPanel : UserControl
     /// <summary>Whether routing is complete and valid.</summary>
     public bool IsValid => CurrentRouting != null;
 
+    /// <summary>
+    /// Restores a pre-built routing (e.g. loaded from a saved session).
+    /// Bypasses the UI grid so ResumeSession can skip the routing wizard step.
+    /// </summary>
+    public void SetRouting(HardwareRouting routing)
+    {
+        CurrentRouting = routing;
+        RoutingChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>Fires when routing is saved.</summary>
     public event EventHandler? RoutingChanged;
 

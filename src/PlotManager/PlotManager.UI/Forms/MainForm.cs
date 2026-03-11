@@ -56,6 +56,10 @@ public partial class MainForm : Form
     private bool _isOnWelcome = true;
     private int _currentStep;
 
+    // ── Session persistence (STORE-1/2) ──
+    private readonly SessionService _sessionSvc = new();
+    private string? _lastSavedSessionPath;
+
     public MainForm()
     {
         InitializeComponent();
@@ -96,8 +100,9 @@ public partial class MainForm : Form
 
         // ── Create all step panels ──
         _welcomePanel = new WelcomePanel();
-        _welcomePanel.NewSetupRequested += (_, _) => EnterWizard(loadProfile: false);
-        _welcomePanel.LoadProfileRequested += (_, _) => EnterWizard(loadProfile: true);
+        _welcomePanel.NewSetupRequested     += (_, _) => EnterWizard(loadProfile: false);
+        _welcomePanel.LoadProfileRequested   += (_, _) => EnterWizard(loadProfile: true);
+        _welcomePanel.ResumeSessionRequested += (_, path) => ResumeSession(path);
 
         _profileStep = new ProfileStepPanel();
         _profileStep.ProfileChanged += (_, _) => UpdateNavState();
@@ -245,6 +250,8 @@ public partial class MainForm : Form
     {
         if (_currentStep > 0)
             ShowStep(_currentStep - 1);
+        else
+            ShowWelcome(); // UI-2 fix: back from step 0 returns to welcome
     }
 
     private void OnNext(object? sender, EventArgs e)
@@ -337,6 +344,114 @@ public partial class MainForm : Form
         _passMonitorForm.Show();
         SetStatus("Pass Monitor запущено");
         StartHealthPolling();
+
+        // Auto-save session for 'Resume' on next launch (STORE-1/2)
+        AutoSaveSession(
+            currentGrid != null ? GridToParams(currentGrid) : null,
+            currentRouting,
+            currentTrialMap?.TrialName);
+    }
+
+    private static GridGenerator.GridParams? GridToParams(PlotGrid g) =>
+        new()
+        {
+            Origin           = g.Origin,
+            HeadingDegrees   = g.HeadingDegrees,
+            Rows             = g.Rows,
+            Columns          = g.Columns,
+            PlotWidthMeters  = g.PlotWidthMeters,
+            PlotLengthMeters = g.PlotLengthMeters,
+            BufferWidthMeters  = g.BufferWidthMeters,
+            BufferLengthMeters = g.BufferLengthMeters,
+        };
+
+    private void AutoSaveSession(
+        GridGenerator.GridParams? gp,
+        HardwareRouting? routing,
+        string? trialName)
+    {
+        if (gp == null && routing == null) return;
+        try
+        {
+            var session = new FieldSession
+            {
+                SessionName = trialName ?? "Session",
+                TrialName   = trialName,
+            };
+            if (gp != null) session.SetFromGridParams(gp);
+            if (routing != null) session.SetFromRouting(routing);
+
+            _lastSavedSessionPath = _sessionSvc.Save(session);
+            _plotLogger?.Info("Session", $"Session auto-saved: {_lastSavedSessionPath}");
+        }
+        catch (Exception ex)
+        {
+            _plotLogger?.Warn("Session", $"Auto-save failed: {ex.Message}");
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Resume Session (loads FieldSession → skip wizard → launch monitor)
+    // ════════════════════════════════════════════════════════════════════
+
+    private void ResumeSession(string sessionPath)
+    {
+        FieldSession session;
+        try
+        {
+            session = _sessionSvc.Load(sessionPath);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Не вдалося завантажити сесію:\n{ex.Message}",
+                "❌ Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        // Rebuild routing from session
+        var routing = session.ToHardwareRouting();
+
+        // Rebuild grid from session params
+        PlotGrid? grid = null;
+        try
+        {
+            var gp = session.ToGridParams();
+            grid = new GridGenerator().Generate(gp);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Не вдалося відновити grid:\n{ex.Message}",
+                "⚠ Попередження", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        // Update wizard steps silently (so validation can pass)
+        _routingStep.SetRouting(routing);
+        if (grid != null)
+            _placementStep.SetRestoredGrid(grid);
+
+        // Ask whether to load a machine profile
+        using var dlg = new OpenFileDialog
+        {
+            Filter = "Machine Profile (*.json)|*.json",
+            Title   = "Завантажити профіль машини (або скасуйте для продовження без профілю)",
+        };
+        if (dlg.ShowDialog() == DialogResult.OK)
+        {
+            try
+            {
+                var loaded = MachineProfile.LoadFromFile(dlg.FileName);
+                _profileStep.SetProfile(loaded);
+            }
+            catch { /* ignore — proceed without profile */ }
+        }
+
+        // Skip wizard, go straight to PassMonitor
+        _isOnWelcome = false;
+        _navBar.Visible = false;
+        SetStatus($"Відновлено сесію: {session.SessionName}");
+        LaunchPassMonitor();
     }
 
     // ════════════════════════════════════════════════════════════════════

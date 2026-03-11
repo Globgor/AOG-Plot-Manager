@@ -36,6 +36,23 @@ public sealed class FieldPlacementPanel : UserControl
     /// <summary>Fires when physical placement changes.</summary>
     public event EventHandler? PlacementChanged;
 
+    /// <summary>
+    /// Restores a pre-built grid (e.g. loaded from a saved session),
+    /// bypassing the GPS coordinate entry UI.
+    /// Triggers PlacementChanged so MainForm wires the routing step.
+    /// </summary>
+    public void SetRestoredGrid(PlotGrid grid)
+    {
+        _logicalGrid = grid;
+        // If there is an existing logicalTrialMap, use it; otherwise create a minimal placeholder.
+        PlacedTrialMap = _logicalTrialMap ?? new PlotManager.Core.Models.TrialMap
+        {
+            TrialName = "Restored",
+            Grid      = grid,
+        };
+        PlacementChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public FieldPlacementPanel()
     {
         Dock = DockStyle.Fill;
