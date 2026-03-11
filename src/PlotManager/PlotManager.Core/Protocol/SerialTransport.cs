@@ -27,9 +27,9 @@ public class SerialTransport : ITransport
         _baudRate = baudRate;
     }
 
-    public Task ConnectAsync(CancellationToken ct = default)
+    public async Task ConnectAsync(CancellationToken ct = default)
     {
-        if (IsConnected) return Task.CompletedTask;
+        if (IsConnected) return;
 
         _port = new SerialPort(_portName, _baudRate)
         {
@@ -42,9 +42,9 @@ public class SerialTransport : ITransport
             RtsEnable = true,
         };
 
-        _port.Open();
+        // R10 FIX: Run blocking Open on thread pool to avoid freezing UI
+        await Task.Run(() => _port.Open(), ct);
         ConnectionStateChanged?.Invoke(this, true);
-        return Task.CompletedTask;
     }
 
     public Task DisconnectAsync(CancellationToken ct = default)
@@ -71,13 +71,19 @@ public class SerialTransport : ITransport
         if (_port?.IsOpen != true)
             return Array.Empty<byte>();
 
-        _port.ReadTimeout = timeoutMs;
         var buffer = new byte[256];
 
         try
         {
-            int bytesRead = await Task.Run(() => _port.Read(buffer, 0, buffer.Length), ct);
+            // R11 FIX: Use BaseStream.ReadAsync instead of blocking ThreadPool via Task.Run
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(timeoutMs);
+            int bytesRead = await _port.BaseStream.ReadAsync(buffer, 0, buffer.Length, cts.Token);
             return buffer[..bytesRead];
+        }
+        catch (OperationCanceledException)
+        {
+            return Array.Empty<byte>();
         }
         catch (TimeoutException)
         {

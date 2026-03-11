@@ -1,4 +1,5 @@
 using PlotManager.Core.Models;
+using PlotManager.Core.Protocol;
 using PlotManager.Core.Services;
 using PlotManager.UI.Controls;
 
@@ -14,11 +15,29 @@ public partial class MainForm : Form
 {
     // ── Core services ──
     private readonly GridGenerator _gridGenerator = new();
+    private SpatialEngine? _spatialEngine;
+    private SectionController? _sectionController;
+    private SensorHub? _sensorHub;
+    private PassTracker? _passTracker;
+    private PlotModeController? _plotController;
+    private AogUdpClient? _aogClient;
+    private PrimeController? _primeController;
+    private CleanController? _cleanController;
+    private AutoWeatherService? _autoWeather;
+    private TrialLogger? _trialLogger;
+    private FormPassMonitor? _passMonitorForm;
+
+    // C1 FIX: Shared logger injected into all services
+    private PlotLogger? _plotLogger;
+
+    // UI4: Health polling timer for StatusStrip
+    private System.Windows.Forms.Timer? _healthPollTimer;
 
     // ── State ──
     private PlotGrid? _currentGrid;
     private TrialMap? _currentTrialMap;
     private HardwareRouting? _currentRouting;
+    private MachineProfile? _machineProfile;
 
     // ── Tab 1: Grid Setup Controls ──
     private TabControl _tabControl = null!;
@@ -49,6 +68,8 @@ public partial class MainForm : Form
     // ── Status bar ──
     private StatusStrip _statusStrip = null!;
     private ToolStripStatusLabel _statusLabel = null!;
+    // U1 FIX: health + log viewer
+    private ToolStripStatusLabel _healthLabel = null!;
 
     public MainForm()
     {
@@ -74,6 +95,34 @@ public partial class MainForm : Form
             TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         };
         _statusStrip.Items.Add(_statusLabel);
+
+        // U1 FIX: Service health indicator
+        _healthLabel = new ToolStripStatusLabel("✔ All services healthy")
+        {
+            ForeColor = Color.FromArgb(76, 175, 80),
+            Font = new Font("Segoe UI", 8f)
+        };
+        _statusStrip.Items.Add(_healthLabel);
+
+        // U1 FIX: View Log button
+        var btnViewLog = new ToolStripButton("📝 Log")
+        {
+            Alignment = ToolStripItemAlignment.Right,
+            Font = new Font("Segoe UI", 8f)
+        };
+        btnViewLog.Click += (_, _) =>
+        {
+            if (_plotLogger?.FilePath != null && File.Exists(_plotLogger.FilePath))
+            {
+                ShowLogViewer();
+            }
+            else
+            {
+                MessageBox.Show("Лог ещё не создан.", "Журнал", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        };
+        _statusStrip.Items.Add(btnViewLog);
+
         Controls.Add(_statusStrip);
 
         // ── Tab Control ──
@@ -88,6 +137,26 @@ public partial class MainForm : Form
         _tabControl.TabPages.Add(CreateHardwareRoutingTab());
 
         Controls.Add(_tabControl);
+
+        // ── Pass Monitor button (top-right) ──
+        var btnPassMonitor = new Button
+        {
+            Text = "▶  Pass Monitor",
+            Size = new Size(160, 36),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(156, 39, 176),
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            Cursor = Cursors.Hand,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+        };
+        btnPassMonitor.FlatAppearance.BorderSize = 0;
+        btnPassMonitor.Location = new Point(ClientSize.Width - btnPassMonitor.Width - 12, 4);
+        btnPassMonitor.Click += BtnPassMonitor_Click;
+        Controls.Add(btnPassMonitor);
+        btnPassMonitor.BringToFront();
+
+        FormClosing += MainForm_FormClosing;
 
         ResumeLayout(true);
     }
@@ -607,6 +676,252 @@ public partial class MainForm : Form
             "Routing Saved",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
+    }
+
+    // ========================================================================
+    // PASS MONITOR
+    // ========================================================================
+
+    private void BtnPassMonitor_Click(object? sender, EventArgs e)
+    {
+        // Reuse existing window if still open
+        if (_passMonitorForm != null && !_passMonitorForm.IsDisposed)
+        {
+            _passMonitorForm.BringToFront();
+            return;
+        }
+
+        // Lazy-init Core services
+        // C1 FIX: Create shared PlotLogger and inject into all services
+        if (_plotLogger == null)
+        {
+            _plotLogger = new PlotLogger();
+            string logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AOGPlotManager", "logs");
+            _plotLogger.StartSession(logDir, $"session_{DateTime.Now:yyyyMMdd_HHmmss}");
+        }
+
+        _spatialEngine ??= new SpatialEngine();
+        _sectionController ??= new SectionController(logger: _plotLogger);
+        _sensorHub ??= new SensorHub(logger: _plotLogger);
+        _passTracker ??= new PassTracker(logger: _plotLogger);
+        _aogClient ??= new AogUdpClient(logger: _plotLogger);
+        if (_plotController == null)
+        {
+            _plotController = new PlotModeController(_spatialEngine, _sectionController, _aogClient, logger: _plotLogger);
+            _plotController.WireInterlocks(_sensorHub);
+
+            // P4-1 FIX: Wire per-boom evaluation when MachineProfile is loaded
+            if (_machineProfile != null)
+            {
+                var hwSetup = _machineProfile.ToHardwareSetup();
+                var delayProvider = _machineProfile.CreateBoomDelayProvider();
+                _plotController.SetHardwareSetup(hwSetup, delayProvider);
+                _machineProfile.ApplyToSpatialEngine(_spatialEngine);
+                _machineProfile.ApplyToSectionController(_sectionController);
+            }
+        }
+
+        // Configure SpatialEngine if grid + trial + routing are ready
+        if (_currentGrid != null && _currentTrialMap != null && _currentRouting != null)
+        {
+            _spatialEngine.Configure(_currentGrid, _currentTrialMap, _currentRouting);
+            _passTracker.Configure(_currentGrid);
+        }
+
+        // ── Phase 5: Init operational services ──
+        _primeController ??= new PrimeController(logger: _plotLogger);
+        _cleanController ??= new CleanController(logger: _plotLogger);
+        _autoWeather ??= new AutoWeatherService();
+        _trialLogger ??= new TrialLogger();
+
+        // Wire transport for Prime/Clean (same serial transport as PlotController)
+        if (_plotController.Transport != null)
+        {
+            _primeController.SetTransport(_plotController.Transport);
+            _cleanController.SetTransport(_plotController.Transport);
+        }
+
+        _passMonitorForm = new FormPassMonitor(
+            _plotController, _sensorHub, _sectionController,
+            _passTracker, _aogClient, _currentGrid, _currentTrialMap,
+            _primeController, _cleanController, _autoWeather, _trialLogger,
+            _plotLogger);
+
+        _passMonitorForm.Show();
+        SetStatus("Pass Monitor opened");
+
+        // UI4: Start health polling after services are initialized
+        StartHealthPolling();
+    }
+
+    private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
+    {
+        // C4 FIX: Close PassMonitor first so it unsubscribes from events
+        // before we dispose the services it references
+        if (_passMonitorForm != null && !_passMonitorForm.IsDisposed)
+        {
+            _passMonitorForm.Close();
+        }
+        _passMonitorForm = null;
+
+        // F6 FIX: Close log viewer if open
+        if (_logViewerForm != null && !_logViewerForm.IsDisposed)
+        {
+            _logViewerForm.Close();
+        }
+        _logViewerForm = null;
+
+        // Now safe to dispose Core services
+        _plotController?.Dispose();
+        _sensorHub?.Dispose();
+        _aogClient?.Dispose();
+        _cleanController?.Dispose();
+        _trialLogger?.Dispose();
+        _autoWeather?.Dispose();
+
+        // UI4: Stop health polling
+        _healthPollTimer?.Stop();
+        _healthPollTimer?.Dispose();
+
+        // C1 FIX: Stop logger session
+        _plotLogger?.StopSession();
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // UI4: Health polling + Estop wiring
+    // ════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Starts a 1-second health polling timer that updates the StatusStrip
+    /// with live service health + Estop status.
+    /// Called once after services are initialized.
+    /// </summary>
+    private void StartHealthPolling()
+    {
+        if (_healthPollTimer != null) return;
+
+        _healthPollTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+        _healthPollTimer.Tick += (_, _) => UpdateHealthStatus();
+        _healthPollTimer.Start();
+    }
+
+    private void UpdateHealthStatus()
+    {
+        if (_sensorHub == null && _aogClient == null) return;
+
+        var sensorHealth = _sensorHub?.Health ?? ServiceHealth.Healthy;
+        var aogHealth = _aogClient?.Health ?? ServiceHealth.Healthy;
+        bool estop = _sensorHub?.LatestSnapshot.IsEstop == true;
+        bool telemetryStale = _sensorHub?.LatestSnapshot.IsStale == true;
+
+        // Estop reaction: if Teensy reports E-STOP, activate in SectionController
+        if (estop && _sectionController != null && !_sectionController.EmergencyStopActive)
+        {
+            _sectionController.ActivateEmergencyStop();
+            _plotLogger?.Error("UI", "Teensy E-STOP detected via telemetry — activating SectionController E-STOP");
+        }
+
+        // Determine worst health
+        ServiceHealth worst = ServiceHealth.Healthy;
+        if (sensorHealth == ServiceHealth.Failed || aogHealth == ServiceHealth.Failed)
+            worst = ServiceHealth.Failed;
+        else if (sensorHealth == ServiceHealth.Degraded || aogHealth == ServiceHealth.Degraded)
+            worst = ServiceHealth.Degraded;
+
+        // Update StatusStrip label
+        if (estop)
+        {
+            _healthLabel.Text = "🛑 E-STOP ACTIVE";
+            _healthLabel.ForeColor = Color.FromArgb(244, 67, 54);
+        }
+        else if (worst == ServiceHealth.Failed)
+        {
+            _healthLabel.Text = $"❌ Service failed (SEN:{sensorHealth} UDP:{aogHealth})";
+            _healthLabel.ForeColor = Color.FromArgb(244, 67, 54);
+        }
+        else if (worst == ServiceHealth.Degraded || telemetryStale)
+        {
+            string staleText = telemetryStale ? " Telemetry stale" : "";
+            _healthLabel.Text = $"⚠ Degraded (SEN:{sensorHealth} UDP:{aogHealth}){staleText}";
+            _healthLabel.ForeColor = Color.FromArgb(255, 193, 7);
+        }
+        else
+        {
+            _healthLabel.Text = $"✔ Healthy (SEN:OK UDP:OK) Log:{_plotLogger?.EntryCount ?? 0}";
+            _healthLabel.ForeColor = Color.FromArgb(76, 175, 80);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // UI4: In-app Log Viewer
+    // ════════════════════════════════════════════════════════════════════
+
+    private Form? _logViewerForm;
+
+    private void ShowLogViewer()
+    {
+        if (_logViewerForm != null && !_logViewerForm.IsDisposed)
+        {
+            _logViewerForm.BringToFront();
+            return;
+        }
+
+        string? logPath = _plotLogger?.FilePath;
+        if (string.IsNullOrEmpty(logPath))
+        {
+            MessageBox.Show("Лог ещё не создан.", "Журнал", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        _logViewerForm = new Form
+        {
+            Text = $"📝 Diagnostic Log — {Path.GetFileName(logPath)}",
+            Size = new Size(900, 600),
+            StartPosition = FormStartPosition.CenterParent,
+            Font = new Font("Consolas", 9.5f),
+        };
+
+        var txtLog = new RichTextBox
+        {
+            Dock = DockStyle.Fill,
+            ReadOnly = true,
+            BackColor = Color.FromArgb(25, 25, 30),
+            ForeColor = Color.FromArgb(200, 200, 200),
+            Font = new Font("Consolas", 9.5f),
+            WordWrap = false,
+            BorderStyle = BorderStyle.None,
+        };
+
+        // Load current content
+        if (File.Exists(logPath))
+            txtLog.Text = File.ReadAllText(logPath);
+
+        // Auto-refresh button
+        var btnRefresh = new Button
+        {
+            Text = "🔄 Refresh",
+            Dock = DockStyle.Bottom,
+            Height = 32,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(33, 150, 243),
+            ForeColor = Color.White,
+        };
+        string capturedLogPath = logPath; // capture for lambda
+        btnRefresh.Click += (_, _) =>
+        {
+            if (File.Exists(capturedLogPath))
+            {
+                txtLog.Text = File.ReadAllText(capturedLogPath);
+                txtLog.SelectionStart = txtLog.TextLength;
+                txtLog.ScrollToCaret();
+            }
+        };
+
+        _logViewerForm.Controls.Add(txtLog);
+        _logViewerForm.Controls.Add(btnRefresh);
+        _logViewerForm.Show(this);
     }
 
     // ========================================================================

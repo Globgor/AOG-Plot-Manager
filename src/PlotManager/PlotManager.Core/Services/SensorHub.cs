@@ -23,6 +23,16 @@ public class SensorHub : IDisposable
     private CancellationTokenSource? _cts;
     private Task? _receiveTask;
     private bool _disposed;
+    private readonly IPlotLogger? _logger;
+    private int _errorCount;
+    private ServiceHealth _health = ServiceHealth.Healthy;
+    private int _handlerRunning; // T4: ThreadPool dispatch throttle
+
+    /// <summary>Maximum number of UDP bind retries before giving up.</summary>
+    public int MaxBindRetries { get; set; } = 3;
+
+    /// <summary>Initial delay between bind retries in milliseconds.</summary>
+    public int BindRetryDelayMs { get; set; } = 500;
 
     // ── Calibration constants (set from MachineProfile) ──
 
@@ -40,6 +50,20 @@ public class SensorHub : IDisposable
 
     /// <summary>UDP port to listen on.</summary>
     public int ListenPort { get; set; } = 9999;
+
+    /// <summary>Number of communication/parse errors since Start().</summary>
+    public int ErrorCount => _errorCount;
+
+    /// <summary>Current health status of the SensorHub service.</summary>
+    public ServiceHealth Health => _health;
+
+    /// <summary>
+    /// Creates a SensorHub with optional structured logging.
+    /// </summary>
+    public SensorHub(IPlotLogger? logger = null)
+    {
+        _logger = logger;
+    }
 
     // ── State ──
 
@@ -95,8 +119,16 @@ public class SensorHub : IDisposable
     {
         AirPressureVoltageOffset = profile.AirPressureVoltageOffset;
         AirPressureVoltageMultiplier = profile.AirPressureVoltageMultiplier;
+
+        // R5 FIX: Reject invalid calibration that would cause divide-by-zero
+        if (profile.FlowMeterPulsesPerLiter <= 0)
+            throw new ArgumentException(
+                $"FlowMeterPulsesPerLiter must be positive, got {profile.FlowMeterPulsesPerLiter}",
+                nameof(profile));
         FlowMeterPulsesPerLiter = profile.FlowMeterPulsesPerLiter;
+
         ListenPort = profile.SensorUdpPort;
+        _logger?.Info("SensorHub", $"Configured: port={ListenPort}, pulsesPerL={FlowMeterPulsesPerLiter}");
     }
 
     /// <summary>Starts listening for UDP telemetry.</summary>
@@ -105,7 +137,38 @@ public class SensorHub : IDisposable
         if (IsListening) return;
 
         _cts = new CancellationTokenSource();
-        _listener = new UdpClient(ListenPort);
+        _errorCount = 0;
+        _handlerRunning = 0;
+        _health = ServiceHealth.Healthy;
+
+        // R2 FIX: Retry UDP bind with exponential backoff
+        int delay = BindRetryDelayMs;
+        for (int attempt = 1; attempt <= MaxBindRetries; attempt++)
+        {
+            try
+            {
+                _listener = new UdpClient(ListenPort);
+                _logger?.Info("SensorHub", $"Bound to UDP port {ListenPort} (attempt {attempt})");
+                break;
+            }
+            catch (SocketException ex)
+            {
+                _logger?.Warn("SensorHub",
+                    $"Bind attempt {attempt}/{MaxBindRetries} failed on port {ListenPort}: {ex.SocketErrorCode}");
+
+                if (attempt == MaxBindRetries)
+                {
+                    _health = ServiceHealth.Failed;
+                    _logger?.Error("SensorHub",
+                        $"All {MaxBindRetries} bind attempts exhausted for port {ListenPort}", ex);
+                    throw new InvalidOperationException(
+                        $"Failed to bind SensorHub to UDP port {ListenPort} after {MaxBindRetries} retries.", ex);
+                }
+
+                Thread.Sleep(delay);
+                delay = Math.Min(delay * 2, 4000); // Exponential backoff, cap at 4s
+            }
+        }
 
         _receiveTask = Task.Run(() => ReceiveLoop(_cts.Token), _cts.Token);
     }
@@ -114,6 +177,12 @@ public class SensorHub : IDisposable
     public void Stop()
     {
         _cts?.Cancel();
+
+        // Wait for the receive loop to exit before disposing the socket
+        try { _receiveTask?.Wait(TimeSpan.FromSeconds(2)); }
+        catch (AggregateException) { /* expected from cancellation */ }
+        _receiveTask = null;
+
         _listener?.Close();
         _listener?.Dispose();
         _listener = null;
@@ -179,7 +248,9 @@ public class SensorHub : IDisposable
     /// </summary>
     public SensorSnapshot ProcessRawTelemetry(RawTelemetry raw)
     {
-        double airBar = CalibrateAirPressure(raw.AirV);
+        // R3 FIX: Guard NaN/Infinity from truncated JSON
+        double airV = double.IsFinite(raw.AirV) ? raw.AirV : 0;
+        double airBar = CalibrateAirPressure(airV);
 
         double[] flowLpm = new double[SensorSnapshot.FlowMeterCount];
         if (raw.FlowHz != null)
@@ -187,7 +258,8 @@ public class SensorHub : IDisposable
             int count = Math.Min(raw.FlowHz.Length, SensorSnapshot.FlowMeterCount);
             for (int i = 0; i < count; i++)
             {
-                flowLpm[i] = CalibrateFlowRate(raw.FlowHz[i]);
+                double hz = double.IsFinite(raw.FlowHz[i]) ? raw.FlowHz[i] : 0;
+                flowLpm[i] = CalibrateFlowRate(hz);
             }
         }
 
@@ -197,6 +269,7 @@ public class SensorHub : IDisposable
             FlowRatesLpm = flowLpm,
             TimestampUtc = DateTime.UtcNow,
             IsStale = false,
+            IsEstop = raw.Estop,
         };
     }
 
@@ -209,6 +282,16 @@ public class SensorHub : IDisposable
         return (DateTime.UtcNow - snapshotTime).TotalSeconds > StaleTimeoutSeconds;
     }
 
+    /// <summary>Source IP of the last received telemetry packet (for diagnostics).</summary>
+    public string? LastSourceIP { get; private set; }
+
+    /// <summary>
+    /// If set, only accept UDP packets from this IP address.
+    /// Null = accept from any source (default, backward-compatible).
+    /// Set to the Teensy's IP (e.g., "192.168.5.100") for production hardening.
+    /// </summary>
+    public string? AllowedSourceIP { get; set; }
+
     private async Task ReceiveLoop(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
@@ -218,6 +301,13 @@ public class SensorHub : IDisposable
                 if (_listener == null) break;
 
                 UdpReceiveResult result = await _listener.ReceiveAsync(ct);
+                string sourceIp = result.RemoteEndPoint.Address.ToString();
+                LastSourceIP = sourceIp;
+
+                // Sec2 FIX: Filter by source IP if configured
+                if (AllowedSourceIP != null && sourceIp != AllowedSourceIP)
+                    continue;
+
                 string json = Encoding.UTF8.GetString(result.Buffer);
 
                 SensorSnapshot? snapshot = ProcessRawJson(json);
@@ -229,13 +319,37 @@ public class SensorHub : IDisposable
                     _lastReceivedUtc = snapshot.TimestampUtc;
                 }
 
-
-                OnTelemetryUpdated?.Invoke(snapshot);
+                // T4 FIX: Throttle ThreadPool dispatch — skip if previous handler still running.
+                // Prevents ThreadPool saturation under burst conditions (>10 packets/sec).
+                SensorSnapshot captured = snapshot;
+                if (OnTelemetryUpdated != null && Interlocked.CompareExchange(ref _handlerRunning, 1, 0) == 0)
+                {
+                    ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        try
+                        {
+                            OnTelemetryUpdated?.Invoke(captured);
+                        }
+                        finally
+                        {
+                            Interlocked.Exchange(ref _handlerRunning, 0);
+                        }
+                    });
+                }
             }
             catch (OperationCanceledException) { break; }
             catch (ObjectDisposedException) { break; }
-            catch (SocketException) { /* Network error — retry */ }
-            catch (JsonException) { /* Bad packet — skip */ }
+            catch (SocketException ex)
+            {
+                Interlocked.Increment(ref _errorCount);
+                _health = ServiceHealth.Degraded;
+                _logger?.Warn("SensorHub", $"Socket error #{_errorCount}: {ex.SocketErrorCode}");
+            }
+            catch (JsonException ex)
+            {
+                Interlocked.Increment(ref _errorCount);
+                _logger?.Warn("SensorHub", $"JSON parse error #{_errorCount}: {ex.Message}");
+            }
         }
     }
 }

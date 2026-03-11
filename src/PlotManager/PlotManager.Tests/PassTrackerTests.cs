@@ -76,7 +76,7 @@ public class PassTrackerTests
         // Leave grid
         tracker.Update(GetOutsidePoint(), 0, 5.0);
         Assert.False(tracker.IsChangeLocked);
-        Assert.Equal(1, tracker.CompletedPasses.Count);
+        Assert.Single(tracker.CompletedPasses);
         Assert.False(tracker.CompletedPasses[0].IsActive);
     }
 
@@ -115,7 +115,7 @@ public class PassTrackerTests
         tracker.Update(GetPlotCenter(grid, 0, 1), 5.0, 5.0, 200);
         Assert.Equal(2, tracker.CurrentPass!.PassNumber);
         Assert.Equal(1, tracker.CurrentPass.ColumnIndex);
-        Assert.Equal(1, tracker.CompletedPasses.Count); // Pass 1 completed
+        Assert.Single(tracker.CompletedPasses); // Pass 1 completed
     }
 
     [Fact]

@@ -169,11 +169,6 @@ public class HardwareSetup
     /// <summary>All physical booms on the sprayer.</summary>
     public List<Boom> Booms { get; init; } = new();
 
-    /// <summary>
-    /// Future flag: when true, SpatialEngine evaluates each nozzle individually.
-    /// When false, each boom operates as a single logical section.
-    /// </summary>
-    public bool NozzleControlEnabled { get; set; } = false;
 
     /// <summary>Number of enabled booms.</summary>
     public int EnabledBoomCount => Booms.Count(b => b.Enabled);

@@ -336,6 +336,7 @@ public class SensorHubTests
             FlowMeterPulsesPerLiter = 500.0,
             MinSafeAirPressureBar = 1.5,
             SensorUdpPort = 8888,
+            Booms = { new BoomProfile { BoomId = 0, Name = "Test", ValveChannel = 0 } },
         };
 
         string json = profile.ToJson();
@@ -357,6 +358,7 @@ public class SensorHubTests
             AirPressureVoltageMultiplier = 3.5,
             FlowMeterPulsesPerLiter = 600.0,
             SensorUdpPort = 7777,
+            Booms = { new BoomProfile { BoomId = 0, Name = "Test", ValveChannel = 0 } },
         };
 
         var hub = new SensorHub();

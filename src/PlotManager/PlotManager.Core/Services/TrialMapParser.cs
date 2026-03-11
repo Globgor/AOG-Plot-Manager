@@ -53,8 +53,13 @@ public static class TrialMapParser
 
             if (isRowColFormat && fields.Length >= 3)
             {
-                int row = int.Parse(fields[0], CultureInfo.InvariantCulture);
-                int col = int.Parse(fields[1], CultureInfo.InvariantCulture);
+                // P4-2 FIX: Use TryParse with descriptive error message
+                if (!int.TryParse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int row) ||
+                    !int.TryParse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int col))
+                {
+                    throw new FormatException(
+                        $"Trial map CSV line {i + 1}: expected numeric Row,Column but got '{fields[0]}','{fields[1]}'");
+                }
                 string product = fields[2].Trim();
                 assignments[$"R{row}C{col}"] = product;
             }

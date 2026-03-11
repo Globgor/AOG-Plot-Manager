@@ -17,6 +17,7 @@ using PlotManager.Core.Models;
 public class AutoWeatherService : IDisposable
 {
     private readonly Stopwatch _stationaryTimer = new();
+    private readonly object _stateLock = new(); // C3 FIX: thread safety
     private bool _triggered;
     private bool _disposed;
 
@@ -53,34 +54,37 @@ public class AutoWeatherService : IDisposable
     {
         if (_disposed) return;
 
-        if (speedKmh <= StoppedSpeedKmh)
+        lock (_stateLock) // C3 FIX: thread safety
         {
-            if (!IsStationary)
+            if (speedKmh <= StoppedSpeedKmh)
             {
-                IsStationary = true;
-                _stationaryTimer.Restart();
-                _triggered = false;
-            }
+                if (!IsStationary)
+                {
+                    IsStationary = true;
+                    _stationaryTimer.Restart();
+                    _triggered = false;
+                }
 
-            // Report progress
-            double progress = Math.Min(1.0, (double)_stationaryTimer.ElapsedMilliseconds / StationaryThresholdMs);
-            OnStationaryProgress?.Invoke(progress);
+                // Report progress
+                double progress = Math.Min(1.0, (double)_stationaryTimer.ElapsedMilliseconds / StationaryThresholdMs);
+                OnStationaryProgress?.Invoke(progress);
 
-            // Check threshold
-            if (!_triggered && _stationaryTimer.ElapsedMilliseconds >= StationaryThresholdMs)
-            {
-                _triggered = true;
-                OnWeatherFetchRequired?.Invoke();
+                // Check threshold
+                if (!_triggered && _stationaryTimer.ElapsedMilliseconds >= StationaryThresholdMs)
+                {
+                    _triggered = true;
+                    OnWeatherFetchRequired?.Invoke();
+                }
             }
-        }
-        else
-        {
-            if (IsStationary)
+            else
             {
-                IsStationary = false;
-                _stationaryTimer.Stop();
-                _triggered = false;
-                OnStationaryProgress?.Invoke(0);
+                if (IsStationary)
+                {
+                    IsStationary = false;
+                    _stationaryTimer.Stop();
+                    _triggered = false;
+                    OnStationaryProgress?.Invoke(0);
+                }
             }
         }
     }
@@ -91,8 +95,11 @@ public class AutoWeatherService : IDisposable
     /// </summary>
     public void ResetTrigger()
     {
-        _triggered = false;
-        _stationaryTimer.Reset();
+        lock (_stateLock) // C3 FIX: thread safety
+        {
+            _triggered = false;
+            _stationaryTimer.Reset();
+        }
     }
 
     /// <summary>

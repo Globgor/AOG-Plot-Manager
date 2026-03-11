@@ -8,11 +8,15 @@ namespace PlotManager.Core.Services;
 /// </summary>
 public class SectionController
 {
-    /// <summary>Pre-activation distance before plot boundary (meters). Allows pressure ramp-up.</summary>
-    public double PreActivationMeters { get; set; } = 0.5;
+    private readonly IPlotLogger? _logger;
 
-    /// <summary>Pre-deactivation distance before plot end (meters). Early shutoff.</summary>
-    public double PreDeactivationMeters { get; set; } = 0.2;
+    /// <summary>
+    /// Creates a SectionController with optional structured logging.
+    /// </summary>
+    public SectionController(IPlotLogger? logger = null)
+    {
+        _logger = logger;
+    }
 
     /// <summary>Whether speed interlock is currently blocking spray.</summary>
     public bool SpeedInterlockActive { get; private set; }
@@ -70,7 +74,7 @@ public class SectionController
     /// speed must return this far inside the acceptable range to clear.
     /// Prevents rapid on/off toggling at the speed boundary.
     /// </summary>
-    public double SpeedHysteresisKmh { get; set; } = 0.5;
+    public double SpeedHysteresisKmh { get; set; } = 0.1;
 
     // ── RTK Timeout Logic ──
 
@@ -152,6 +156,9 @@ public class SectionController
         // Fire event on state change
         if (SpeedInterlockActive != wasActive)
         {
+            _logger?.Warn("Interlocks",
+                $"Speed interlock {(SpeedInterlockActive ? "ACTIVE" : "CLEARED")} | " +
+                $"speed={currentSpeedKmh:F2} range=[{MinSpeedKmh:F1},{MaxSpeedKmh:F1}]");
             OnSpeedInterlockChanged?.Invoke(SpeedInterlockActive, currentSpeedKmh);
         }
 
@@ -221,6 +228,8 @@ public class SectionController
             // First detection — start timer
             RtkDegraded = true;
             _rtkLossStart = now;
+            _logger?.Warn("Interlocks",
+                $"RTK DEGRADED: quality={quality} (min={MinFixQuality}), timeout={RtkLossTimeoutSeconds}s");
             OnRtkDegraded?.Invoke(quality, RtkLossTimeoutSeconds);
         }
 
@@ -231,6 +240,7 @@ public class SectionController
             if (!RtkLostActive)
             {
                 RtkLostActive = true;
+                _logger?.Error("Interlocks", $"RTK LOST (instant mode): quality={quality}");
                 OnRtkLost?.Invoke(quality);
             }
         }
@@ -240,6 +250,8 @@ public class SectionController
             if (elapsed >= RtkLossTimeoutSeconds && !RtkLostActive)
             {
                 RtkLostActive = true;
+                _logger?.Error("Interlocks",
+                    $"RTK LOST after {elapsed:F1}s: quality={quality}");
                 OnRtkLost?.Invoke(quality);
             }
         }
@@ -253,6 +265,7 @@ public class SectionController
     public void ActivateEmergencyStop()
     {
         EmergencyStopActive = true;
+        _logger?.Error("Interlocks", "E-STOP ACTIVATED");
         OnEmergencyStopChanged?.Invoke(true);
     }
 
@@ -262,6 +275,7 @@ public class SectionController
     public void ClearEmergencyStop()
     {
         EmergencyStopActive = false;
+        _logger?.Info("Interlocks", "E-STOP CLEARED");
         OnEmergencyStopChanged?.Invoke(false);
     }
 
@@ -320,11 +334,27 @@ public class SectionController
         }
 
         // Check if timeout has expired
-        double elapsed = (now - _airPressureLossStart).TotalSeconds;
-        if (elapsed >= AirPressureTimeoutSeconds && !AirPressureLostActive)
+        if (AirPressureTimeoutSeconds <= 0)
         {
-            AirPressureLostActive = true;
-            OnAirPressureLost?.Invoke(airPressureBar);
+            // L6 FIX: Instant mode — no timeout (parity with RTK interlock)
+            if (!AirPressureLostActive)
+            {
+                AirPressureLostActive = true;
+                _logger?.Error("Interlocks",
+                    $"AIR PRESSURE LOST (instant): pressure={airPressureBar:F2} bar (min={MinSafeAirPressureBar:F1})");
+                OnAirPressureLost?.Invoke(airPressureBar);
+            }
+        }
+        else
+        {
+            double elapsed = (now - _airPressureLossStart).TotalSeconds;
+            if (elapsed >= AirPressureTimeoutSeconds && !AirPressureLostActive)
+            {
+                AirPressureLostActive = true;
+                _logger?.Error("Interlocks",
+                    $"AIR PRESSURE LOST after {elapsed:F1}s: pressure={airPressureBar:F2} bar (min={MinSafeAirPressureBar:F1})");
+                OnAirPressureLost?.Invoke(airPressureBar);
+            }
         }
 
         return !AirPressureLostActive;

@@ -115,6 +115,16 @@ public class SpatialEngine
     public double CogHeadingThresholdDegrees { get; set; } = 3.0;
 
     /// <summary>
+    /// Speed below which heading is frozen to last valid value (km/h).
+    /// Prevents GPS COG/heading jitter from causing chaotic valve switching at standstill.
+    /// Default: 1.0 km/h. Set to 0 to disable.
+    /// </summary>
+    public double FreezeHeadingBelowSpeedKmh { get; set; } = 1.0;
+
+    /// <summary>Last valid heading used for freeze logic.</summary>
+    private double _frozenHeadingDegrees;
+
+    /// <summary>
     /// Computes the effective activation distance using a specific delay value.
     /// Used for per-boom delay overrides.
     /// </summary>
@@ -190,6 +200,23 @@ public class SpatialEngine
         _trialMap = trialMap ?? throw new ArgumentNullException(nameof(trialMap));
         _routing = routing ?? throw new ArgumentNullException(nameof(routing));
 
+        // T2 FIX: Validate that every grid cell has a TrialMap assignment
+        var missingPlots = new List<string>();
+        for (int r = 0; r < grid.Rows; r++)
+        {
+            for (int c = 0; c < grid.Columns; c++)
+            {
+                string plotId = $"R{r + 1}C{c + 1}";
+                if (trialMap.GetProduct(r, c) == null)
+                    missingPlots.Add(plotId);
+            }
+        }
+        if (missingPlots.Count > 0)
+            throw new ArgumentException(
+                $"TrialMap is missing assignments for {missingPlots.Count} plots: " +
+                $"{string.Join(", ", missingPlots.Take(5))}" +
+                (missingPlots.Count > 5 ? $"... and {missingPlots.Count - 5} more" : ""));
+
         // Cache grid bounds
         Plot first = _grid.Plots[0, 0];
         Plot last = _grid.Plots[_grid.Rows - 1, _grid.Columns - 1];
@@ -219,6 +246,16 @@ public class SpatialEngine
 
         double headingRad = headingDegrees * Math.PI / 180.0;
 
+        // User #2: GPS deadband — freeze heading at low speed
+        if (FreezeHeadingBelowSpeedKmh > 0 && speedKmh < FreezeHeadingBelowSpeedKmh)
+        {
+            headingRad = _frozenHeadingDegrees * Math.PI / 180.0;
+        }
+        else
+        {
+            _frozenHeadingDegrees = headingDegrees;
+        }
+
         // Dynamic distances: user's desired meters + speed-dependent valve delay compensation
         double activationDist = GetEffectiveActivationDistance(speedKmh);
         double deactivationDist = GetEffectiveDeactivationDistance(speedKmh);
@@ -234,13 +271,15 @@ public class SpatialEngine
 
             if (distToExit <= deactivationDist)
             {
-                // Within dynamic pre-deactivation zone — shut off early for dry cutoff
+                // D2 FIX: Within dynamic pre-deactivation zone — shut off sections for THIS
+                // plot's product only. ValveMask=0 because EvaluatePosition returns a single-plot
+                // result; the per-boom path (EvaluatePerBoom) handles multi-plot overlap.
                 return new SpatialResult
                 {
                     State = BoomState.LeavingPlot,
                     ActivePlot = currentPlot,
                     ActiveProduct = GetProduct(currentPlot),
-                    ValveMask = 0, // Force off for dry cutoff
+                    ValveMask = 0, // Sections for this product shut off (dry cutoff)
                     DistanceToBoundaryMeters = distToExit,
                     ActivationDistanceMeters = activationDist,
                     DeactivationDistanceMeters = deactivationDist,
@@ -441,8 +480,8 @@ public class SpatialEngine
             {
                 return _grid.Plots[candidateRow, candidateCol];
             }
-            // Position is in a buffer zone or outside — return null
-            return null;
+            // L1 FIX: Fall through to linear scan instead of returning null.
+            // O(1) candidate may miss due to floating-point precision at boundaries.
         }
 
         // Fallback: linear scan for rotated grids
@@ -496,6 +535,8 @@ public class SpatialEngine
 
     /// <summary>
     /// Checks if the current position is within the grid bounds (including buffers).
+    /// WARNING: Uses axis-aligned bounding box — only accurate for HeadingDegrees == 0 grids.
+    /// For rotated grids, positions near corners may be falsely classified.
     /// </summary>
     public bool IsInGridArea(GeoPoint position)
     {

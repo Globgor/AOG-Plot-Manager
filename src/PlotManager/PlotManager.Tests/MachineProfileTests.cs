@@ -259,7 +259,7 @@ public class MachineProfileTests
         Assert.Equal(3.0, profile.OperatingPressureBar);
         Assert.Equal(2.5, profile.AntennaHeightMeters);
         Assert.Equal(200, profile.TargetRateLPerHa);
-        Assert.Equal("COM3", profile.Connection.TeensyComPort);
+        Assert.Equal(string.Empty, profile.Connection.TeensyComPort); // F1: no hardcoded default
         Assert.Equal(115200, profile.Connection.TeensyBaudRate);
     }
 }

@@ -51,3 +51,7 @@ desktop.ini
 logs/
 *.csv
 !tests/fixtures/**/*.csv
+
+# ── AI agent work ──────────────────────────
+.gemini/
+.agents/

@@ -47,6 +47,13 @@ public class TrialLogger : IDisposable
     public int LogIntervalMs { get; set; } = 1000;
 
     /// <summary>
+    /// D6 FIX: When true, log GPS position in ALL boom states (InAlley, OutsideGrid, etc.),
+    /// not just spray-active states. Enables full trajectory reconstruction.
+    /// Default: false (only log InPlot/Approaching/Leaving).
+    /// </summary>
+    public bool LogAllStates { get; set; }
+
+    /// <summary>
     /// Starts a new trial logging session.
     /// Writes weather metadata header before data rows begin.
     /// </summary>
@@ -73,7 +80,7 @@ public class TrialLogger : IDisposable
         if (!string.IsNullOrWhiteSpace(weather.Notes))
         {
             _csvLogger.LogRecord(
-                DateTime.Now, 0, 0,
+                DateTime.UtcNow, 0, 0,
                 "SYSTEM", "NOTE", 0, 0,
                 $"Operator notes: {weather.Notes}");
         }
@@ -98,11 +105,16 @@ public class TrialLogger : IDisposable
             _timer = null;
         }
 
-        // Write session end marker
+        // D3 FIX: Write session summary before end marker
         if (_csvLogger.FilePath != null)
         {
             _csvLogger.LogRecord(
-                DateTime.Now, _lastLatitude, _lastLongitude,
+                DateTime.UtcNow, _lastLatitude, _lastLongitude,
+                "SYSTEM", "SESSION_SUMMARY", _lastSpeedKmh, 0,
+                $"Records={_csvLogger.RecordCount} InterlockEvents={_interlockEventCount}");
+
+            _csvLogger.LogRecord(
+                DateTime.UtcNow, _lastLatitude, _lastLongitude,
                 "SYSTEM", "SESSION_END", _lastSpeedKmh, 0,
                 $"Records: {_csvLogger.RecordCount}");
         }
@@ -144,7 +156,7 @@ public class TrialLogger : IDisposable
         if (!IsActive) return;
 
         _csvLogger.LogRecord(
-            DateTime.Now, latitude, longitude,
+            DateTime.UtcNow, latitude, longitude,
             plotId, product, _lastSpeedKmh, _lastValveMask,
             "PLOT_ENTRY");
     }
@@ -157,7 +169,7 @@ public class TrialLogger : IDisposable
         if (!IsActive) return;
 
         _csvLogger.LogRecord(
-            DateTime.Now, latitude, longitude,
+            DateTime.UtcNow, latitude, longitude,
             plotId, product, _lastSpeedKmh, 0,
             "PLOT_EXIT");
     }
@@ -168,11 +180,46 @@ public class TrialLogger : IDisposable
     public void LogSpeedInterlock(double currentSpeed, double targetSpeed, double tolerance)
     {
         if (!IsActive) return;
+        _interlockEventCount++;
 
         _csvLogger.LogRecord(
-            DateTime.Now, _lastLatitude, _lastLongitude,
+            DateTime.UtcNow, _lastLatitude, _lastLongitude,
             _lastPlotId, _lastProduct, currentSpeed, 0,
-            $"SPEED_INTERLOCK: current={currentSpeed:F2} target={targetSpeed:F2} tol={tolerance:F0}%");
+            $"SPEED_INTERLOCK: current={currentSpeed:F2} target={targetSpeed:F2} tol={tolerance:F0}%",
+            offReason: "SPEED");
+    }
+
+    /// <summary>
+    /// Logs an RTK quality interlock event.
+    /// </summary>
+    public void LogRtkInterlock(string fixQuality, bool isLost)
+    {
+        if (!IsActive) return;
+        _interlockEventCount++;
+
+        string status = isLost ? "RTK_LOST" : "RTK_DEGRADED";
+        _csvLogger.LogRecord(
+            DateTime.UtcNow, _lastLatitude, _lastLongitude,
+            _lastPlotId, _lastProduct, _lastSpeedKmh, 0,
+            $"{status}: fix={fixQuality}",
+            fixQuality: fixQuality,
+            offReason: status);
+    }
+
+    /// <summary>
+    /// Logs an air pressure interlock event.
+    /// </summary>
+    public void LogAirPressureInterlock(double pressureBar, double minSafe, bool isLost)
+    {
+        if (!IsActive) return;
+        _interlockEventCount++;
+
+        string status = isLost ? "AIR_PRESSURE_LOST" : "AIR_PRESSURE_LOW";
+        _csvLogger.LogRecord(
+            DateTime.UtcNow, _lastLatitude, _lastLongitude,
+            _lastPlotId, _lastProduct, _lastSpeedKmh, 0,
+            $"{status}: pressure={pressureBar:F2} min={minSafe:F1}",
+            offReason: status);
     }
 
     public void Dispose()
@@ -184,6 +231,9 @@ public class TrialLogger : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    // ── Private ──
+    private int _interlockEventCount;
+
     // ════════════════════════════════════════════════════════════════════
     // Private
     // ════════════════════════════════════════════════════════════════════
@@ -192,36 +242,49 @@ public class TrialLogger : IDisposable
     {
         if (_disposed) return;
 
-        double lat, lon, heading, speed;
-        string? plotId, product;
-        ushort mask;
-        BoomState state;
-        SensorSnapshot? sensor;
-
-        lock (_stateLock)
+        try
         {
-            lat = _lastLatitude;
-            lon = _lastLongitude;
-            heading = _lastHeading;
-            speed = _lastSpeedKmh;
-            plotId = _lastPlotId;
-            product = _lastProduct;
-            mask = _lastValveMask;
-            state = _lastBoomState;
-            sensor = _lastSensorSnapshot;
+            double lat, lon, heading, speed;
+            string? plotId, product;
+            ushort mask;
+            BoomState state;
+            SensorSnapshot? sensor;
+
+            lock (_stateLock)
+            {
+                lat = _lastLatitude;
+                lon = _lastLongitude;
+                heading = _lastHeading;
+                speed = _lastSpeedKmh;
+                plotId = _lastPlotId;
+                product = _lastProduct;
+                mask = _lastValveMask;
+                state = _lastBoomState;
+                sensor = _lastSensorSnapshot;
+            }
+
+            // D6 FIX: Log all states if enabled, otherwise only spray-relevant states
+            bool shouldLog = LogAllStates
+                || state == BoomState.InPlot
+                || state == BoomState.ApproachingPlot
+                || state == BoomState.LeavingPlot;
+
+            if (shouldLog)
+            {
+                // Use sensor-aware logging if we have sensor data
+                double? airBar = (sensor != null && !sensor.IsStale) ? sensor.AirPressureBar : null;
+                double[]? flows = (sensor != null && !sensor.IsStale) ? sensor.FlowRatesLpm : null;
+
+                _csvLogger.LogRecordWithSensors(
+                    DateTime.UtcNow, lat, lon, plotId, product, speed, mask,
+                    airBar, flows,
+                    headingDeg: heading);
+            }
         }
-
-        // Only log when actively spraying or in a relevant state
-        if (state == BoomState.InPlot || state == BoomState.ApproachingPlot ||
-            state == BoomState.LeavingPlot)
+        catch (Exception)
         {
-            // Use sensor-aware logging if we have sensor data
-            double? airBar = (sensor != null && !sensor.IsStale) ? sensor.AirPressureBar : null;
-            double[]? flows = (sensor != null && !sensor.IsStale) ? sensor.FlowRatesLpm : null;
-
-            _csvLogger.LogRecordWithSensors(
-                DateTime.UtcNow, lat, lon, plotId, product, speed, mask,
-                airBar, flows);
+            // R4 FIX: Don't let timer callback crash silently
+            // Errors here are non-fatal — next tick will retry
         }
     }
 }

@@ -351,25 +351,42 @@ public class FormMachineProfile : Form
         _profile.GpsUpdateRateHz = (int)_nudGpsHz.Value;
         _profile.CogHeadingThresholdDegrees = (double)_nudCogThreshold.Value;
 
-        // Tab 4 — booms
+        // Tab 4 — booms (R12 FIX: try-catch per row)
         _profile.Booms.Clear();
+        var boomErrors = new List<string>();
         foreach (DataGridViewRow r in _dgvBooms.Rows)
         {
-            _profile.Booms.Add(new BoomProfile
+            try
             {
-                BoomId = Convert.ToInt32(r.Cells["BoomId"].Value),
-                Name = r.Cells["Name"].Value?.ToString() ?? "",
-                ValveChannel = Convert.ToInt32(r.Cells["ValveChannel"].Value),
-                YOffsetMeters = Convert.ToDouble(r.Cells["YOffset"].Value),
-                XOffsetMeters = Convert.ToDouble(r.Cells["XOffset"].Value),
-                SprayWidthMeters = Convert.ToDouble(r.Cells["SprayWidth"].Value),
-                ActivationOverlapPercent = Convert.ToDouble(r.Cells["ActOverlap"].Value),
-                DeactivationOverlapPercent = Convert.ToDouble(r.Cells["DeactOverlap"].Value),
-                ActivationDelayOverrideMs = Convert.ToDouble(r.Cells["ActDelay"].Value),
-                DeactivationDelayOverrideMs = Convert.ToDouble(r.Cells["DeactDelay"].Value),
-                HoseLengthMeters = Convert.ToDouble(r.Cells["HoseLen"].Value),
-                Enabled = Convert.ToBoolean(r.Cells["Enabled"].Value),
-            });
+                _profile.Booms.Add(new BoomProfile
+                {
+                    BoomId = Convert.ToInt32(r.Cells["BoomId"].Value),
+                    Name = r.Cells["Name"].Value?.ToString() ?? "",
+                    ValveChannel = Convert.ToInt32(r.Cells["ValveChannel"].Value),
+                    YOffsetMeters = Convert.ToDouble(r.Cells["YOffset"].Value),
+                    XOffsetMeters = Convert.ToDouble(r.Cells["XOffset"].Value),
+                    SprayWidthMeters = Convert.ToDouble(r.Cells["SprayWidth"].Value),
+                    ActivationOverlapPercent = Convert.ToDouble(r.Cells["ActOverlap"].Value),
+                    DeactivationOverlapPercent = Convert.ToDouble(r.Cells["DeactOverlap"].Value),
+                    ActivationDelayOverrideMs = Convert.ToDouble(r.Cells["ActDelay"].Value),
+                    DeactivationDelayOverrideMs = Convert.ToDouble(r.Cells["DeactDelay"].Value),
+                    HoseLengthMeters = Convert.ToDouble(r.Cells["HoseLen"].Value),
+                    Enabled = Convert.ToBoolean(r.Cells["Enabled"].Value),
+                });
+            }
+            catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+            {
+                boomErrors.Add($"Boom row {r.Index + 1}: {ex.Message}");
+            }
+        }
+
+        if (boomErrors.Count > 0)
+        {
+            MessageBox.Show(
+                "Ошибки в данных штанг:\n\n" + string.Join("\n", boomErrors.Select(e => $"• {e}")),
+                "❌ Ошибка валидации", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            DialogResult = DialogResult.None; // R12 FIX: prevent close on error
+            return;
         }
 
         // Tab 5
@@ -386,6 +403,19 @@ public class FormMachineProfile : Form
         _profile.TargetRateLPerHa = (double)_nudTargetRate.Value;
 
         _profile.LastModifiedUtc = DateTime.UtcNow;
+
+        // R13 FIX: Validate before accepting
+        try
+        {
+            _profile.Validate();
+        }
+        catch (InvalidOperationException ex)
+        {
+            MessageBox.Show(
+                $"Профиль невалиден:\n\n{ex.Message}",
+                "❌ Ошибка валидации", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            DialogResult = DialogResult.None; // Block close
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -452,7 +482,23 @@ public class FormMachineProfile : Form
         dst.Connection = src.Connection;
         dst.Nozzle = src.Nozzle;
         dst.TargetRateLPerHa = src.TargetRateLPerHa;
-        dst.Booms = src.Booms;
+
+        // R14 FIX: Deep-copy Booms to prevent mutating source
+        dst.Booms = src.Booms.Select(b => new BoomProfile
+        {
+            BoomId = b.BoomId,
+            Name = b.Name,
+            ValveChannel = b.ValveChannel,
+            YOffsetMeters = b.YOffsetMeters,
+            XOffsetMeters = b.XOffsetMeters,
+            SprayWidthMeters = b.SprayWidthMeters,
+            ActivationOverlapPercent = b.ActivationOverlapPercent,
+            DeactivationOverlapPercent = b.DeactivationOverlapPercent,
+            ActivationDelayOverrideMs = b.ActivationDelayOverrideMs,
+            DeactivationDelayOverrideMs = b.DeactivationDelayOverrideMs,
+            HoseLengthMeters = b.HoseLengthMeters,
+            Enabled = b.Enabled,
+        }).ToList();
     }
 
     // ════════════════════════════════════════════════════════════════════

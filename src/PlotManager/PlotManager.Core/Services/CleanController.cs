@@ -19,6 +19,15 @@ public class CleanController : IDisposable
     private int _cyclesRemaining;
     private ushort _cleanMask;
     private bool _disposed;
+    private readonly IPlotLogger? _logger;
+
+    /// <summary>
+    /// Creates a CleanController with optional structured logging.
+    /// </summary>
+    public CleanController(IPlotLogger? logger = null)
+    {
+        _logger = logger;
+    }
 
     /// <summary>Duration of valve-open pulse in milliseconds (default: 2000ms).</summary>
     public int PulseOnMs { get; set; } = 2000;
@@ -95,6 +104,7 @@ public class CleanController : IDisposable
         _valvesOpen = false;
 
         // Start with ON phase
+        _logger?.Info("Clean", $"Clean started: mask=0x{_cleanMask:X4}, cycles={CycleCount}, on={PulseOnMs}ms, off={PulseOffMs}ms");
         StartOnPhase();
 
         return true;
@@ -111,6 +121,7 @@ public class CleanController : IDisposable
         _cyclesRemaining = 0;
         _valvesOpen = false;
         SendValveMask(0);
+        _logger?.Info("Clean", "Clean stopped");
         OnCleanStateChanged?.Invoke(false, 0);
     }
 
@@ -173,7 +184,11 @@ public class CleanController : IDisposable
         try
         {
             byte[] packet = PlotProtocol.BuildSetValves(mask);
-            _transport.SendAsync(packet).ConfigureAwait(false);
+            _ = _transport.SendAsync(packet).ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    OnCleanError?.Invoke($"Failed to send clean command: {t.Exception?.GetBaseException().Message}");
+            }, TaskContinuationOptions.OnlyOnFaulted);
         }
         catch (Exception ex)
         {

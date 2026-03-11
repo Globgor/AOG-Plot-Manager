@@ -116,5 +116,11 @@ public class GridGenerator
         if (p.PlotLengthMeters <= 0) throw new ArgumentException("PlotLengthMeters must be positive.", nameof(p));
         if (p.BufferWidthMeters < 0) throw new ArgumentException("BufferWidthMeters cannot be negative.", nameof(p));
         if (p.BufferLengthMeters < 0) throw new ArgumentException("BufferLengthMeters cannot be negative.", nameof(p));
+
+        // T6 FIX: Reject origins near poles where cos(lat)→0 breaks meter→degree conversion
+        if (p.Origin.Latitude < -85.0 || p.Origin.Latitude > 85.0)
+            throw new ArgumentException(
+                $"Origin latitude {p.Origin.Latitude:F1}° is outside valid range [-85, 85]. " +
+                "Meter-to-degree conversion is unreliable near poles.", nameof(p));
     }
 }

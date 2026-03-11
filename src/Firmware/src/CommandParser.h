@@ -42,6 +42,10 @@ public:
       _cmd.payloadLength = 0;
       _cmd.valid = false;
       _expectedPayloadLen = getPayloadLength(byte);
+      // Q1 FIX: Cap payload length to buffer size to prevent overflow
+      if (_expectedPayloadLen > sizeof(_cmd.payload)) {
+        _expectedPayloadLen = sizeof(_cmd.payload);
+      }
       _runningCrc = byte;
 
       if (_expectedPayloadLen == 0) {
@@ -52,7 +56,10 @@ public:
       break;
 
     case State::WaitData:
-      _cmd.payload[_cmd.payloadLength++] = byte;
+      if (_cmd.payloadLength < sizeof(_cmd.payload)) {
+        _cmd.payload[_cmd.payloadLength] = byte;
+      }
+      _cmd.payloadLength++;
       _runningCrc ^= byte;
 
       if (_cmd.payloadLength >= _expectedPayloadLen) {

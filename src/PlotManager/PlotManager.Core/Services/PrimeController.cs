@@ -13,6 +13,15 @@ public class PrimeController
 {
     private ITransport? _transport;
     private bool _priming;
+    private readonly IPlotLogger? _logger;
+
+    /// <summary>
+    /// Creates a PrimeController with optional structured logging.
+    /// </summary>
+    public PrimeController(IPlotLogger? logger = null)
+    {
+        _logger = logger;
+    }
 
     /// <summary>Maximum allowed speed for priming (km/h). Safety threshold.</summary>
     public double MaxPrimeSpeedKmh { get; set; } = 0.5;
@@ -64,6 +73,7 @@ public class PrimeController
 
         _priming = true;
         SendValveMask(0x3FFF); // All 14 valves OPEN
+        _logger?.Info("Prime", "Prime started: all 14 valves OPEN");
         OnPrimeStateChanged?.Invoke(true);
         return true;
     }
@@ -77,6 +87,7 @@ public class PrimeController
 
         _priming = false;
         SendValveMask(0x0000); // All valves CLOSED
+        _logger?.Info("Prime", "Prime stopped");
         OnPrimeStateChanged?.Invoke(false);
     }
 
@@ -97,7 +108,11 @@ public class PrimeController
         try
         {
             byte[] packet = PlotProtocol.BuildSetValves(mask);
-            _transport.SendAsync(packet).ConfigureAwait(false);
+            _ = _transport.SendAsync(packet).ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    OnPrimeError?.Invoke($"Failed to send prime command: {t.Exception?.GetBaseException().Message}");
+            }, TaskContinuationOptions.OnlyOnFaulted);
         }
         catch (Exception ex)
         {

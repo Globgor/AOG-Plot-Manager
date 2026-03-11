@@ -90,6 +90,12 @@ public static class PlotProtocol
     /// Attempts to parse a response packet from raw bytes.
     /// Returns null if the data is invalid or incomplete.
     /// </summary>
+    /// <remarks>
+    /// S5 NOTE: The CRC is a single-byte XOR over CMD + DATA. This is intentionally
+    /// simple — it matches the firmware implementation (Teensy 4.1) and is adequate
+    /// for the wired USB serial link (0.5m cable, no EMI exposure). A CRC-16 would
+    /// add complexity without meaningful benefit for this use case.
+    /// </remarks>
     public static ParsedResponse? ParseResponse(byte[] data)
     {
         if (data.Length < 4) return null; // Minimum: SYNC1 + SYNC2 + CMD + CRC

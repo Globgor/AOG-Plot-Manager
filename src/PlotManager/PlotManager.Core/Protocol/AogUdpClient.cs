@@ -4,6 +4,7 @@ using System.Net.Sockets;
 namespace PlotManager.Core.Protocol;
 
 using PlotManager.Core.Models;
+using PlotManager.Core.Services;
 
 /// <summary>
 /// UDP client for receiving AgOpenGPS broadcasts and sending section control overrides.
@@ -15,8 +16,33 @@ using PlotManager.Core.Models;
 public class AogUdpClient : IDisposable
 {
     private UdpClient? _listener;
+    private UdpClient? _sender;
     private CancellationTokenSource? _cts;
     private Task? _receiveTask;
+    private readonly IPlotLogger? _logger;
+    private int _errorCount;
+    private ServiceHealth _health = ServiceHealth.Healthy;
+    private int _gpsHandlerRunning; // T4: ThreadPool dispatch throttle
+
+    /// <summary>Maximum number of UDP bind retries before giving up.</summary>
+    public int MaxBindRetries { get; set; } = 3;
+
+    /// <summary>Initial delay between bind retries in milliseconds.</summary>
+    public int BindRetryDelayMs { get; set; } = 500;
+
+    /// <summary>Number of communication errors since Start().</summary>
+    public int ErrorCount => _errorCount;
+
+    /// <summary>Current health status.</summary>
+    public ServiceHealth Health => _health;
+
+    /// <summary>
+    /// Creates an AogUdpClient with optional structured logging.
+    /// </summary>
+    public AogUdpClient(IPlotLogger? logger = null)
+    {
+        _logger = logger;
+    }
 
     /// <summary>Port to listen on (AOG sends to machine modules).</summary>
     public int ListenPort { get; init; } = AogProtocol.AogSendPort;
@@ -44,8 +70,43 @@ public class AogUdpClient : IDisposable
         if (IsListening) return;
 
         _cts = new CancellationTokenSource();
-        _listener = new UdpClient(ListenPort);
-        _listener.EnableBroadcast = true;
+        _errorCount = 0;
+        _gpsHandlerRunning = 0;
+        _health = ServiceHealth.Healthy;
+
+        // R6 FIX: Retry UDP bind with exponential backoff
+        int delay = BindRetryDelayMs;
+        for (int attempt = 1; attempt <= MaxBindRetries; attempt++)
+        {
+            try
+            {
+                _listener = new UdpClient(ListenPort);
+                _listener.EnableBroadcast = true;
+                _logger?.Info("AogUdp", $"Bound to UDP port {ListenPort} (attempt {attempt})");
+                break;
+            }
+            catch (SocketException ex)
+            {
+                _logger?.Warn("AogUdp",
+                    $"Bind attempt {attempt}/{MaxBindRetries} on port {ListenPort}: {ex.SocketErrorCode}");
+
+                if (attempt == MaxBindRetries)
+                {
+                    _health = ServiceHealth.Failed;
+                    _logger?.Error("AogUdp",
+                        $"All {MaxBindRetries} bind attempts exhausted for port {ListenPort}", ex);
+                    throw new InvalidOperationException(
+                        $"Failed to bind AogUdpClient to UDP port {ListenPort} after {MaxBindRetries} retries.", ex);
+                }
+
+                Thread.Sleep(delay);
+                delay = Math.Min(delay * 2, 4000);
+            }
+        }
+
+        // P4-3 FIX: Reuse a single sender socket instead of creating per call
+        _sender = new UdpClient();
+        _sender.EnableBroadcast = true;
 
         _receiveTask = Task.Run(() => ReceiveLoop(_cts.Token), _cts.Token);
     }
@@ -56,9 +117,18 @@ public class AogUdpClient : IDisposable
     public void Stop()
     {
         _cts?.Cancel();
+
+        // Wait for the receive loop to exit before disposing sockets
+        try { _receiveTask?.Wait(TimeSpan.FromSeconds(2)); }
+        catch (AggregateException) { /* expected from cancellation */ }
+        _receiveTask = null;
+
         _listener?.Close();
         _listener?.Dispose();
         _listener = null;
+        _sender?.Close();
+        _sender?.Dispose();
+        _sender = null;
         _cts?.Dispose();
         _cts = null;
     }
@@ -87,8 +157,16 @@ public class AogUdpClient : IDisposable
     /// </summary>
     public void SendRaw(byte[] data)
     {
-        using var sender = new UdpClient();
-        sender.EnableBroadcast = true;
+        // P4-3 FIX: Reuse sender socket (created in Start())
+        var sender = _sender;
+        if (sender == null)
+        {
+            // Fallback if called before Start() — create ephemeral
+            using var fallback = new UdpClient();
+            fallback.EnableBroadcast = true;
+            fallback.Send(data, data.Length, new IPEndPoint(TargetAddress, TargetPort));
+            return;
+        }
         sender.Send(data, data.Length, new IPEndPoint(TargetAddress, TargetPort));
     }
 
@@ -121,9 +199,11 @@ public class AogUdpClient : IDisposable
             {
                 break;
             }
-            catch (SocketException)
+            catch (SocketException ex)
             {
-                // Network error — skip and retry
+                Interlocked.Increment(ref _errorCount);
+                _health = ServiceHealth.Degraded;
+                _logger?.Warn("AogUdp", $"Socket error #{_errorCount}: {ex.SocketErrorCode}");
             }
         }
     }
@@ -150,7 +230,12 @@ public class AogUdpClient : IDisposable
     private void ProcessSectionControl(byte[] data)
     {
         ushort originalMask = AogProtocol.ExtractSectionMask(data);
-        OnSectionControl?.Invoke(originalMask, data);
+        // P4-4 FIX: Decouple from receive loop
+        if (OnSectionControl != null)
+        {
+            byte[] dataCopy = data;
+            ThreadPool.QueueUserWorkItem(_ => OnSectionControl?.Invoke(originalMask, dataCopy));
+        }
     }
 
     private void ProcessGpsData(byte[] data)
@@ -205,6 +290,37 @@ public class AogUdpClient : IDisposable
             CourseOverGroundDegrees = cogDegrees,
         };
 
-        OnGpsUpdate?.Invoke(gpsData);
+        // S2 FIX: Validate GPS coordinates — reject obviously invalid
+        if (gpsData.Latitude < -90.0 || gpsData.Latitude > 90.0 ||
+            gpsData.Longitude < -180.0 || gpsData.Longitude > 180.0)
+        {
+            _logger?.Warn("AogUdp",
+                $"Invalid GPS coordinates rejected: lat={gpsData.Latitude:F7} lon={gpsData.Longitude:F7}");
+            return;
+        }
+
+        // S3 FIX: Clamp speed to sane range — corrupt packet safety
+        if (gpsData.SpeedKmh > 100.0)
+        {
+            _logger?.Warn("AogUdp",
+                $"Speed clamped: {gpsData.SpeedKmh:F1} → 100.0 km/h (corrupt packet?)");
+            gpsData = gpsData with { SpeedKmh = 100.0 };
+        }
+
+        // T4 FIX: Throttle GPS dispatch — skip if previous handler still running.
+        if (OnGpsUpdate != null && Interlocked.CompareExchange(ref _gpsHandlerRunning, 1, 0) == 0)
+        {
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    OnGpsUpdate?.Invoke(gpsData);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _gpsHandlerRunning, 0);
+                }
+            });
+        }
     }
 }

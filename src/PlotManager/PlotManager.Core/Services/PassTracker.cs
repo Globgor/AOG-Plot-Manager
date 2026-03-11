@@ -18,6 +18,18 @@ namespace PlotManager.Core.Services;
 /// </summary>
 public class PassTracker
 {
+    // ── Thread safety ──
+    private readonly object _lock = new();
+    private readonly IPlotLogger? _logger;
+
+    /// <summary>
+    /// Creates a PassTracker with optional structured logging.
+    /// </summary>
+    public PassTracker(IPlotLogger? logger = null)
+    {
+        _logger = logger;
+    }
+
     // ── Configuration ──
 
     /// <summary>Speed deviation threshold (%) before warning fires.</summary>
@@ -118,19 +130,21 @@ public class PassTracker
         // Find which plot (if any) the position is in
         (int row, int col) = FindPlotIndices(position);
 
-        if (row >= 0 && col >= 0)
+        // P4-5 FIX: Thread-safe state mutation
+        lock (_lock)
         {
-            // Inside a plot
-            HandleInsideGrid(row, col, speedKmh, targetSpeedKmh, targetRateLPerHa);
-        }
-        else
-        {
-            // Outside the grid
-            HandleOutsideGrid();
-        }
+            if (row >= 0 && col >= 0)
+            {
+                HandleInsideGrid(row, col, speedKmh, targetSpeedKmh, targetRateLPerHa);
+            }
+            else
+            {
+                HandleOutsideGrid();
+            }
 
-        LastRowIndex = row;
-        LastColumnIndex = col;
+            LastRowIndex = row;
+            LastColumnIndex = col;
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -180,6 +194,8 @@ public class PassTracker
             StartTimeUtc = DateTime.UtcNow,
         };
         OnPassStarted?.Invoke(CurrentPass);
+        _logger?.Info("PassTracker",
+            $"Pass {CurrentPass.PassNumber} STARTED: col={col} dir={dir} speed={CurrentPass.LockedSpeedKmh:F1} km/h");
     }
 
     private void HandleOutsideGrid()
@@ -196,6 +212,9 @@ public class PassTracker
 
         CurrentPass.Complete();
         CompletedPasses.Add(CurrentPass);
+        _logger?.Info("PassTracker",
+            $"Pass {CurrentPass.PassNumber} COMPLETED: col={CurrentPass.ColumnIndex} " +
+            $"maxDeviation={CurrentPass.MaxSpeedDeviationPercent:F1}%");
         OnPassCompleted?.Invoke(CurrentPass);
     }
 
@@ -275,13 +294,17 @@ public class PassTracker
     /// </summary>
     public string GetStatusText()
     {
-        if (CurrentPass == null || !CurrentPass.IsActive)
-            return "Ожидание прохода...";
+        // P4-5 FIX: Thread-safe read
+        lock (_lock)
+        {
+            if (CurrentPass == null || !CurrentPass.IsActive)
+                return "Ожидание прохода...";
 
-        return $"Проход {CurrentPass.PassNumber} " +
-            $"(Кол. {CurrentPass.ColumnIndex + 1}, {(CurrentPass.Direction == PassDirection.Up ? "↑" : "↓")}) " +
-            $"| Скорость: {CurrentPass.LockedSpeedKmh:F1} км/ч " +
-            $"| Макс. откл.: {CurrentPass.MaxSpeedDeviationPercent:F1}%";
+            return $"Проход {CurrentPass.PassNumber} " +
+                $"(Кол. {CurrentPass.ColumnIndex + 1}, {(CurrentPass.Direction == PassDirection.Up ? "↑" : "↓")}) " +
+                $"| Скорость: {CurrentPass.LockedSpeedKmh:F1} км/ч " +
+                $"| Макс. откл.: {CurrentPass.MaxSpeedDeviationPercent:F1}%";
+        }
     }
 
     /// <summary>

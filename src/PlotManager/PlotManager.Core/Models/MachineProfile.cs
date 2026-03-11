@@ -44,8 +44,8 @@ public class NozzleSpec
 /// </summary>
 public class ConnectionSettings
 {
-    /// <summary>Serial port for Teensy (e.g. "COM3", "/dev/ttyACM0").</summary>
-    public string TeensyComPort { get; set; } = "COM3";
+    /// <summary>Serial port for Teensy (e.g. "COM3" on Windows, "/dev/ttyACM0" on Linux). Empty = auto-detect.</summary>
+    public string TeensyComPort { get; set; } = string.Empty;
 
     /// <summary>Baud rate for Teensy communication.</summary>
     public int TeensyBaudRate { get; set; } = 115200;
@@ -287,8 +287,10 @@ public class MachineProfile
     /// <summary>Deserializes a MachineProfile from JSON.</summary>
     public static MachineProfile FromJson(string json)
     {
-        return JsonSerializer.Deserialize<MachineProfile>(json, _jsonOptions)
+        var profile = JsonSerializer.Deserialize<MachineProfile>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Invalid machine profile JSON.");
+        profile.Validate();
+        return profile;
     }
 
     /// <summary>Saves profile to a file.</summary>
@@ -303,6 +305,64 @@ public class MachineProfile
     {
         string json = File.ReadAllText(path);
         return FromJson(json);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Validation (S1 FIX)
+    // ════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Validates that all profile parameters are within sane ranges.
+    /// Throws <see cref="InvalidOperationException"/> on first violation.
+    /// Called automatically from <see cref="FromJson"/>.
+    /// </summary>
+    public void Validate()
+    {
+        var errors = new List<string>();
+
+        // Timing
+        if (SystemActivationDelayMs < 0)
+            errors.Add($"SystemActivationDelayMs must be ≥ 0, got {SystemActivationDelayMs}");
+        if (SystemDeactivationDelayMs < 0)
+            errors.Add($"SystemDeactivationDelayMs must be ≥ 0, got {SystemDeactivationDelayMs}");
+
+        // Booms
+        if (Booms.Count == 0)
+            errors.Add("Profile must have at least 1 boom.");
+
+        // Channel uniqueness
+        var channels = new HashSet<int>();
+        foreach (var bp in Booms)
+        {
+            if (bp.ValveChannel < 0 || bp.ValveChannel > 13)
+                errors.Add($"Boom '{bp.Name}': ValveChannel {bp.ValveChannel} out of range [0,13].");
+            if (!channels.Add(bp.ValveChannel))
+                errors.Add($"Duplicate ValveChannel {bp.ValveChannel} in boom '{bp.Name}'.");
+        }
+
+        // Calibration
+        if (FlowMeterPulsesPerLiter <= 0)
+            errors.Add($"FlowMeterPulsesPerLiter must be > 0, got {FlowMeterPulsesPerLiter}");
+        if (AirPressureVoltageMultiplier <= 0)
+            errors.Add($"AirPressureVoltageMultiplier must be > 0, got {AirPressureVoltageMultiplier}");
+
+        // Speed
+        if (TargetSpeedKmh < 0)
+            errors.Add($"TargetSpeedKmh must be ≥ 0, got {TargetSpeedKmh}");
+        if (SpeedToleranceKmh < 0)
+            errors.Add($"SpeedToleranceKmh must be ≥ 0, got {SpeedToleranceKmh}");
+
+        // RTK
+        if (RtkLossTimeoutSeconds < 0)
+            errors.Add($"RtkLossTimeoutSeconds must be ≥ 0, got {RtkLossTimeoutSeconds}");
+
+        // GPS Hz
+        if (GpsUpdateRateHz <= 0)
+            errors.Add($"GpsUpdateRateHz must be > 0, got {GpsUpdateRateHz}");
+
+        if (errors.Count > 0)
+            throw new InvalidOperationException(
+                $"MachineProfile validation failed:\n• {string.Join("\n• ", errors)}");
     }
 
     // ════════════════════════════════════════════════════════════════════

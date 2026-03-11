@@ -28,6 +28,12 @@ public record SensorSnapshot
     public bool IsStale { get; init; }
 
     /// <summary>
+    /// True if the Teensy reports E-STOP active (heartbeat lost).
+    /// Should trigger SectionController.ActivateEmergencyStop().
+    /// </summary>
+    public bool IsEstop { get; init; }
+
+    /// <summary>
     /// Creates a "no data" snapshot with zero values and IsStale = true.
     /// </summary>
     public static SensorSnapshot CreateEmpty() => new()
@@ -36,6 +42,7 @@ public record SensorSnapshot
         FlowRatesLpm = new double[FlowMeterCount],
         TimestampUtc = DateTime.UtcNow,
         IsStale = true,
+        IsEstop = false,
     };
 }
 
@@ -53,4 +60,10 @@ public class RawTelemetry
     /// Array should have 10 elements; missing elements default to 0.
     /// </summary>
     public double[]? FlowHz { get; set; }
+
+    /// <summary>Teensy uptime in milliseconds (for packet-loss detection).</summary>
+    public long T { get; set; }
+
+    /// <summary>True if the Teensy is in E-STOP state (heartbeat lost).</summary>
+    public bool Estop { get; set; }
 }

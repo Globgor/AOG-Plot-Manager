@@ -46,7 +46,7 @@ constexpr uint8_t RESP_STATUS = 0x80;
 constexpr uint8_t RESP_ACK = 0x81;
 
 // -- Timing --
-constexpr unsigned long HEARTBEAT_TIMEOUT_MS_DEFAULT = 2000;
+constexpr unsigned long HEARTBEAT_TIMEOUT_MS_DEFAULT = 500;
 constexpr unsigned long STATUS_REPORT_INTERVAL_MS = 100;
 constexpr unsigned long SERIAL_BAUD_RATE = 115200;
 
@@ -56,5 +56,27 @@ constexpr uint16_t VALVE_MASK_14BIT = 0x3FFF;
 
 // -- Status LED --
 constexpr int LED_PIN = 13; // Built-in LED on Teensy 4.1
+
+// -- Sensor inputs --
+constexpr int AIR_PRESSURE_PIN = 38; // A14 on Teensy 4.1 (analog 0–3.3V)
+constexpr int NUM_FLOW_METERS = 10;
+constexpr int FLOW_METER_PINS[NUM_FLOW_METERS] = {14, 15, 16, 17, 18,
+                                                  19, 20, 21, 22, 23};
+
+// -- Telemetry UDP --
+constexpr int TELEMETRY_UDP_PORT = 9999;   // PlotManager SensorHub listens here
+constexpr int TELEMETRY_LOCAL_PORT = 9998; // Teensy bind port (arbitrary)
+constexpr unsigned long TELEMETRY_INTERVAL_MS = 100; // 10 Hz
+
+// -- Network (static IP, same subnet as PlotManager PC) --
+// Adjust these to match your field LAN configuration.
+constexpr uint8_t TEENSY_MAC[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE};
+constexpr uint8_t TEENSY_IP[] = {192, 168, 5, 177};
+constexpr uint8_t TEENSY_SUBNET[] = {255, 255, 255, 0};
+constexpr uint8_t TARGET_IP[] = {192, 168, 5, 1}; // PlotManager PC
+
+// -- ADC --
+constexpr double ADC_VREF = 3.3;     // Teensy 4.1 ADC reference voltage
+constexpr int ADC_RESOLUTION = 1024; // 10-bit default
 
 #endif // CONFIG_H
