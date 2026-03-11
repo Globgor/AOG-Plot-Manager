@@ -161,8 +161,16 @@ public class FormMachineProfile : Form
             _catalog.Nozzles.Select(n => n.ToString()).ToArray());
 
         _nudSprayAngle = AddNumericRow(p, "Кут розпилу (°):", 60, 180, 5, 110);
-        _nudFlowRate = AddNumericRow(p, "Витрата при 3 бар (л/хв):", 0.1m, 10, 0.01m, 1.18m);
+        _nudSprayAngle.ReadOnly = true;
+        _nudSprayAngle.BackColor = AppTheme.BgCard;
+
+        _nudFlowRate = AddNumericRow(p, "Вилив (л/хв) [з каталогу]:", 0.1m, 10, 0.01m, 1.14m);
+        _nudFlowRate.ReadOnly = true;
+        _nudFlowRate.BackColor = AppTheme.BgCard;
+
         _txtNozzleColor = AddTextRow(p, "Колір (ISO):");
+        _txtNozzleColor.ReadOnly = true;
+        _txtNozzleColor.BackColor = AppTheme.BgCard;
 
         // ── Section 4: Calculator output ──
         AddSectionHeader(p, "📊 Результат розрахунку", ref _row);
