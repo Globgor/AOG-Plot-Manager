@@ -127,6 +127,11 @@ public class AutoWeatherService : IDisposable
                 System.Globalization.CultureInfo.InvariantCulture, out double speed))
             return null;
 
+        // parts[5] = A (valid) / V (invalid) — reject invalid readings
+        if (parts.Length >= 6 &&
+            parts[5].Trim().Equals("V", StringComparison.OrdinalIgnoreCase))
+            return null;
+
         // Convert to m/s if needed
         string unit = parts[4].Trim().ToUpperInvariant();
         double speedMs = unit switch
