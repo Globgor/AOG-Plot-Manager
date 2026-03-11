@@ -94,13 +94,13 @@ public class FormMachineProfile : Form
         };
         AppTheme.StyleTabControl(tabControl);
 
-        // Nozzle first — this determines speed and flow rates
+        // Identity first — name the profile before configuring
+        tabControl.TabPages.Add(BuildTabGeneral());
         tabControl.TabPages.Add(BuildTabNozzle());
         tabControl.TabPages.Add(BuildTabBooms());
         tabControl.TabPages.Add(BuildTabDelays());
         tabControl.TabPages.Add(BuildTabSpeedGps());
         tabControl.TabPages.Add(BuildTabConnections());
-        tabControl.TabPages.Add(BuildTabGeneral());
 
         // ── Bottom buttons ──
         var panelButtons = new FlowLayoutPanel
