@@ -472,9 +472,8 @@ public class IntegrationTests : IDisposable
         foreach (var t in threads) t.Start();
         foreach (var t in threads) t.Join();
 
-        // RecordCount uses non-atomic increment, so may lose a few under contention
-        // The important invariant: all records reach the file
-        Assert.InRange(logger.RecordCount, threadCount * recordsPerThread - 10, threadCount * recordsPerThread);
+        // RecordCount now uses Interlocked.Increment — should be exact
+        Assert.Equal(threadCount * recordsPerThread, logger.RecordCount);
 
         // Let flush finish
         Thread.Sleep(300);

@@ -100,7 +100,8 @@ public class GridGenerator
 
         // Convert meters to degrees (approximate)
         double latOffset = rotatedDy / 110540.0;
-        double lonOffset = rotatedDx / (111320.0 * Math.Cos(origin.Latitude * Math.PI / 180.0));
+        double cosLat = Math.Cos(origin.Latitude * Math.PI / 180.0);
+        double lonOffset = rotatedDx / (111320.0 * Math.Max(cosLat, 0.01));
 
         return new GeoPoint(
             origin.Latitude + latOffset,

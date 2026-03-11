@@ -467,21 +467,25 @@ public class SpatialEngine
             double rowStep = _grid.PlotLengthMeters + _grid.BufferLengthMeters;
             double colStep = _grid.PlotWidthMeters + _grid.BufferWidthMeters;
 
-            double dLatMeters = (position.Latitude - origin.SouthWest.Latitude) * 110540.0;
-            double cosLat = Math.Cos(origin.SouthWest.Latitude * Math.PI / 180.0);
-            double dLonMeters = (position.Longitude - origin.SouthWest.Longitude) * 111320.0 * cosLat;
-
-            int candidateRow = (int)(dLatMeters / rowStep);
-            int candidateCol = (int)(dLonMeters / colStep);
-
-            if (candidateRow >= 0 && candidateRow < _grid.Rows &&
-                candidateCol >= 0 && candidateCol < _grid.Columns &&
-                _grid.Plots[candidateRow, candidateCol].Contains(position))
+            // Guard: avoid division by zero if grid config is degenerate
+            if (rowStep > 0 && colStep > 0)
             {
-                return _grid.Plots[candidateRow, candidateCol];
+                double dLatMeters = (position.Latitude - origin.SouthWest.Latitude) * 110540.0;
+                double cosLat = Math.Cos(origin.SouthWest.Latitude * Math.PI / 180.0);
+                double dLonMeters = (position.Longitude - origin.SouthWest.Longitude) * 111320.0 * cosLat;
+
+                int candidateRow = (int)(dLatMeters / rowStep);
+                int candidateCol = (int)(dLonMeters / colStep);
+
+                if (candidateRow >= 0 && candidateRow < _grid.Rows &&
+                    candidateCol >= 0 && candidateCol < _grid.Columns &&
+                    _grid.Plots[candidateRow, candidateCol].Contains(position))
+                {
+                    return _grid.Plots[candidateRow, candidateCol];
+                }
+                // L1 FIX: Fall through to linear scan instead of returning null.
+                // O(1) candidate may miss due to floating-point precision at boundaries.
             }
-            // L1 FIX: Fall through to linear scan instead of returning null.
-            // O(1) candidate may miss due to floating-point precision at boundaries.
         }
 
         // Fallback: linear scan for rotated grids

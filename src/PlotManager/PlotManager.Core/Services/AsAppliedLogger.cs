@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace PlotManager.Core.Services;
 
@@ -28,8 +29,9 @@ public class AsAppliedLogger : IDisposable
     /// <summary>Path to the current log file.</summary>
     public string? FilePath { get; private set; }
 
-    /// <summary>Number of records written (approximate — incremented on enqueue).</summary>
-    public long RecordCount { get; private set; }
+    /// <summary>Number of records written (thread-safe via Interlocked).</summary>
+    public long RecordCount => Interlocked.Read(ref _recordCount);
+    private long _recordCount;
 
     /// <summary>Flush interval for the background writer (default: 1000ms).</summary>
     public int FlushIntervalMs { get; set; } = 1000;
@@ -68,7 +70,7 @@ public class AsAppliedLogger : IDisposable
         _writer.WriteLine(header);
         _writer.Flush();
 
-        RecordCount = 0;
+        _recordCount = 0;
         _sessionActive = true;
 
         // Start background flush thread
@@ -120,7 +122,7 @@ public class AsAppliedLogger : IDisposable
         line += $",{offReason ?? ""}";
 
         _queue.Enqueue(line);
-        RecordCount++;
+        Interlocked.Increment(ref _recordCount);
     }
 
     /// <summary>
@@ -179,7 +181,7 @@ public class AsAppliedLogger : IDisposable
         sb.Append(offReason ?? "");
 
         _queue.Enqueue(sb.ToString());
-        RecordCount++;
+        Interlocked.Increment(ref _recordCount);
     }
 
     /// <summary>

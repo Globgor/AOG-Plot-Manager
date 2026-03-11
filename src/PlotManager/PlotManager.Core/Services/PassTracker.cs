@@ -254,19 +254,22 @@ public class PassTracker
             double rowStep = Grid.PlotLengthMeters + Grid.BufferLengthMeters;
             double colStep = Grid.PlotWidthMeters + Grid.BufferWidthMeters;
 
-            // Convert lat/lon to meters offset from origin
-            double dLatMeters = (position.Latitude - origin.SouthWest.Latitude) * 110540.0;
-            double cosLat = Math.Cos(origin.SouthWest.Latitude * Math.PI / 180.0);
-            double dLonMeters = (position.Longitude - origin.SouthWest.Longitude) * 111320.0 * cosLat;
-
-            int candidateRow = (int)(dLatMeters / rowStep);
-            int candidateCol = (int)(dLonMeters / colStep);
-
-            if (candidateRow >= 0 && candidateRow < Grid.Rows &&
-                candidateCol >= 0 && candidateCol < Grid.Columns &&
-                Grid.Plots[candidateRow, candidateCol].Contains(position))
+            if (rowStep > 0 && colStep > 0)
             {
-                return (candidateRow, candidateCol);
+                // Convert lat/lon to meters offset from origin
+                double dLatMeters = (position.Latitude - origin.SouthWest.Latitude) * 110540.0;
+                double cosLat = Math.Cos(origin.SouthWest.Latitude * Math.PI / 180.0);
+                double dLonMeters = (position.Longitude - origin.SouthWest.Longitude) * 111320.0 * cosLat;
+
+                int candidateRow = (int)(dLatMeters / rowStep);
+                int candidateCol = (int)(dLonMeters / colStep);
+
+                if (candidateRow >= 0 && candidateRow < Grid.Rows &&
+                    candidateCol >= 0 && candidateCol < Grid.Columns &&
+                    Grid.Plots[candidateRow, candidateCol].Contains(position))
+                {
+                    return (candidateRow, candidateCol);
+                }
             }
         }
 
