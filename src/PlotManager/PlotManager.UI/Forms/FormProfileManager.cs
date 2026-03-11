@@ -32,11 +32,12 @@ public sealed class FormProfileManager : Form
         LoadProfileList();
     }
 
-    /// <summary>Profiles live alongside the executable.</summary>
+    /// <summary>Profiles live in user AppData for stability across rebuilds.</summary>
     public static string GetProfilesDirectory()
     {
-        string appDir = AppDomain.CurrentDomain.BaseDirectory;
-        return Path.Combine(appDir, "profiles");
+        string appData = Environment.GetFolderPath(
+            Environment.SpecialFolder.ApplicationData);
+        return Path.Combine(appData, "AOGPlotManager", "profiles");
     }
 
     /// <summary>
@@ -97,7 +98,7 @@ public sealed class FormProfileManager : Form
             Padding = new Padding(14, 0, 0, 4),
         };
 
-        // ── Profile list ──
+        // ── Profile list (owner-draw to force dark theme) ──
         _lstProfiles = new ListBox
         {
             Dock = DockStyle.Fill,
@@ -105,7 +106,23 @@ public sealed class FormProfileManager : Form
             ForeColor = AppTheme.TextPrimary,
             Font = new Font("Segoe UI", 10.5f),
             BorderStyle = BorderStyle.None,
-            ItemHeight = 28,
+            ItemHeight = 32,
+            DrawMode = DrawMode.OwnerDrawFixed,
+        };
+        _lstProfiles.DrawItem += (_, e) =>
+        {
+            if (e.Index < 0) return;
+            e.DrawBackground();
+
+            bool selected = (e.State & DrawItemState.Selected) != 0;
+            using var bgBrush = new SolidBrush(
+                selected ? AppTheme.BgHover : AppTheme.BgCard);
+            e.Graphics.FillRectangle(bgBrush, e.Bounds);
+
+            using var fgBrush = new SolidBrush(AppTheme.TextPrimary);
+            string text = _lstProfiles.Items[e.Index]?.ToString() ?? "";
+            e.Graphics.DrawString(text, e.Font!, fgBrush,
+                e.Bounds.X + 4, e.Bounds.Y + 4);
         };
         _lstProfiles.SelectedIndexChanged += OnSelectionChanged;
         _lstProfiles.DoubleClick += OnLoadSelected;
@@ -132,20 +149,23 @@ public sealed class FormProfileManager : Form
             BackColor = AppTheme.BgSecondary,
         };
 
-        var btnLoad = AppTheme.MakeButton("✅ Обрати", 120, AppTheme.AccentGreen);
+        var btnLoad = AppTheme.MakeButton("Обрати", 130, AppTheme.AccentGreen);
         btnLoad.Click += OnLoadSelected;
         btnPanel.Controls.Add(btnLoad);
 
-        var btnDelete = AppTheme.MakeButton("🗑 Видалити", 120, AppTheme.AccentRed);
+        var btnDelete = AppTheme.MakeButton("Видалити", 130, AppTheme.AccentRed);
         btnDelete.Click += OnDeleteSelected;
+        btnDelete.Margin = new Padding(8, 0, 0, 0);
         btnPanel.Controls.Add(btnDelete);
 
-        var btnNew = AppTheme.MakeButton("🆕 Новий", 120, AppTheme.AccentBlue);
+        var btnNew = AppTheme.MakeButton("Новий", 130, AppTheme.AccentBlue);
         btnNew.Click += OnCreateNew;
+        btnNew.Margin = new Padding(8, 0, 0, 0);
         btnPanel.Controls.Add(btnNew);
 
-        var btnCancel = AppTheme.MakeButton("Закрити", 100);
+        var btnCancel = AppTheme.MakeButton("Закрити", 110);
         btnCancel.DialogResult = DialogResult.Cancel;
+        btnCancel.Margin = new Padding(8, 0, 0, 0);
         btnPanel.Controls.Add(btnCancel);
 
         Controls.Add(_lstProfiles);
