@@ -16,7 +16,7 @@ public class MachineProfileTests
         MachineProfile profile = MachineProfile.CreateDefault();
 
         Assert.Equal(10, profile.Booms.Count);
-        Assert.Equal("Default Profile", profile.ProfileName);
+        Assert.Equal("Стандартний профіль", profile.ProfileName);
         Assert.Equal(FluidType.Water, profile.FluidType);
     }
 
