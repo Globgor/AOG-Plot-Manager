@@ -92,13 +92,19 @@ public sealed class ProfileStepPanel : UserControl
         btnEdit.Click += OnEditProfile;
         btnRow.Controls.Add(btnEdit);
 
-        var btnLoad = new Button { Text = "📂  Завантажити з файлу", Width = 200 };
+        var btnManager = new Button { Text = "📋  Менеджер профілів", Width = 200 };
+        AppTheme.StyleButtonOutline(btnManager);
+        btnManager.Click += OnOpenProfileManager;
+        btnManager.Margin = new Padding(12, 0, 0, 0);
+        btnRow.Controls.Add(btnManager);
+
+        var btnLoad = new Button { Text = "📂  З файлу", Width = 140 };
         AppTheme.StyleButtonOutline(btnLoad);
         btnLoad.Click += OnLoadFromFile;
         btnLoad.Margin = new Padding(12, 0, 0, 0);
         btnRow.Controls.Add(btnLoad);
 
-        var btnNew = new Button { Text = "🆕  Новий профіль", Width = 180 };
+        var btnNew = new Button { Text = "🆕  Новий", Width = 120 };
         AppTheme.StyleButtonOutline(btnNew);
         btnNew.Click += OnNewProfile;
         btnNew.Margin = new Padding(12, 0, 0, 0);
@@ -218,6 +224,8 @@ public sealed class ProfileStepPanel : UserControl
         if (form.ShowDialog(this) == DialogResult.OK)
         {
             SetProfile(form.Profile);
+            // Auto-save to profiles directory
+            FormProfileManager.AutoSaveProfile(form.Profile);
         }
     }
 
@@ -228,6 +236,17 @@ public sealed class ProfileStepPanel : UserControl
         if (form.ShowDialog(this) == DialogResult.OK)
         {
             SetProfile(form.Profile);
+            // Auto-save to profiles directory
+            FormProfileManager.AutoSaveProfile(form.Profile);
+        }
+    }
+
+    private void OnOpenProfileManager(object? sender, EventArgs e)
+    {
+        using var mgr = new FormProfileManager();
+        if (mgr.ShowDialog(this) == DialogResult.OK && mgr.SelectedProfile != null)
+        {
+            SetProfile(mgr.SelectedProfile);
         }
     }
 
