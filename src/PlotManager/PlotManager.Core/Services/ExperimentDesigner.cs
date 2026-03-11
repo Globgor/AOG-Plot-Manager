@@ -31,11 +31,28 @@ namespace PlotManager.Core.Services
         /// <param name="grid">The plot grid to assign treatments to.</param>
         /// <param name="treatments">List of treatment names to assign.</param>
         /// <param name="type">Experimental design type.</param>
+        /// <param name="replications">
+        ///   Number of replications (blocks) required. Default 1.
+        ///   Validated against grid dimensions:
+        ///   - CRD:   totalPlots ≥ treatments.Count × replications
+        ///   - RCBD:  grid.Rows  ≥ replications (each row is one block)
+        ///   - LatinSquare: grid.Rows = grid.Columns = treatments.Count (1 rep only)
+        /// </param>
         /// <returns>A TrialMap with randomized treatment assignments.</returns>
-        public TrialMap GenerateDesign(PlotGrid grid, List<string> treatments, ExperimentalDesignType type)
+        public TrialMap GenerateDesign(
+            PlotGrid grid,
+            List<string> treatments,
+            ExperimentalDesignType type,
+            int replications = 1)
         {
             if (grid == null) throw new ArgumentNullException(nameof(grid));
-            if (treatments == null || !treatments.Any()) throw new ArgumentException("Treatments cannot be empty.", nameof(treatments));
+            if (treatments == null || !treatments.Any())
+                throw new ArgumentException("Treatments cannot be empty.", nameof(treatments));
+            if (replications < 1)
+                throw new ArgumentOutOfRangeException(nameof(replications), "Replications must be ≥ 1.");
+
+            // ── Replication validation (TRIAL-1 fix) ──
+            ValidatePlotCount(grid, treatments, type, replications);
 
             Dictionary<string, string> assignments = type switch
             {
@@ -47,9 +64,53 @@ namespace PlotManager.Core.Services
 
             return new TrialMap
             {
-                TrialName = $"Generated {type}",
+                TrialName = $"Generated {type} ({treatments.Count} treatments × {replications} reps)",
                 PlotAssignments = assignments
             };
+        }
+
+        /// <summary>
+        /// Validates that the grid has enough plots for the requested experimental design.
+        /// Throws <see cref="InvalidOperationException"/> describing the mismatch.
+        /// Can be called from UI to pre-validate before generating.
+        /// </summary>
+        public static void ValidatePlotCount(
+            PlotGrid grid,
+            List<string> treatments,
+            ExperimentalDesignType type,
+            int replications)
+        {
+            int t = treatments.Count;
+            switch (type)
+            {
+                case ExperimentalDesignType.CRD:
+                    int required = t * replications;
+                    if (grid.TotalPlots < required)
+                        throw new InvalidOperationException(
+                            $"CRD requires ≥ {required} plots ({t} treatments × {replications} reps) " +
+                            $"but grid only has {grid.TotalPlots}.");
+                    break;
+
+                case ExperimentalDesignType.RCBD:
+                    // Each row = 1 block = 1 replication; need ≥ replications rows
+                    if (grid.Rows < replications)
+                        throw new InvalidOperationException(
+                            $"RCBD requires ≥ {replications} rows (one per replication) " +
+                            $"but grid only has {grid.Rows} rows.");
+                    // Each row must fit all treatments
+                    if (grid.Columns < t)
+                        throw new InvalidOperationException(
+                            $"RCBD requires ≥ {t} columns (one per treatment per block) " +
+                            $"but grid only has {grid.Columns} columns.");
+                    break;
+
+                case ExperimentalDesignType.LatinSquare:
+                    if (grid.Rows < t || grid.Columns < t)
+                        throw new InvalidOperationException(
+                            $"Latin Square requires a grid of at least {t}×{t} " +
+                            $"but grid is {grid.Rows}×{grid.Columns}.");
+                    break;
+            }
         }
 
         /// <summary>
