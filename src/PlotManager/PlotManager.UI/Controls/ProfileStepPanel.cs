@@ -124,12 +124,15 @@ public sealed class ProfileStepPanel : UserControl
             RowCount = 6,
             ColumnStyles =
             {
-                new ColumnStyle(SizeType.Percent, 40),
-                new ColumnStyle(SizeType.Percent, 60),
+                new ColumnStyle(SizeType.Percent, 35),
+                new ColumnStyle(SizeType.Percent, 65),
             },
-            Padding = new Padding(12),
+            // Explicitly inherit card background so labels are visible
+            BackColor = AppTheme.BgCard,
+            ForeColor = AppTheme.TextPrimary,
+            Padding = new Padding(16, 12, 16, 12),
         };
-        // Ensure each row auto-sizes to its content
+        // Each row auto-sizes to label content
         for (int i = 0; i < 6; i++)
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
@@ -138,8 +141,9 @@ public sealed class ProfileStepPanel : UserControl
             Text = "⏳ Профіль не завантажено",
             Font = new Font("Segoe UI", 12, FontStyle.Bold),
             ForeColor = AppTheme.AccentOrange,
+            BackColor = AppTheme.BgCard,
             AutoSize = true,
-            Margin = new Padding(0, 0, 0, 16),
+            Margin = new Padding(0, 0, 0, 10),
         };
         layout.SetColumnSpan(_lblStatus, 2);
         layout.Controls.Add(_lblStatus, 0, 0);
@@ -160,6 +164,7 @@ public sealed class ProfileStepPanel : UserControl
             Text = label,
             Font = AppTheme.FontBody,
             ForeColor = AppTheme.TextSecondary,
+            BackColor = AppTheme.BgCard,
             AutoSize = true,
             Margin = new Padding(0, 4, 0, 4),
         }, 0, row);
@@ -167,8 +172,9 @@ public sealed class ProfileStepPanel : UserControl
         var lbl = new Label
         {
             Text = value,
-            Font = AppTheme.FontBody,
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
             ForeColor = AppTheme.TextPrimary,
+            BackColor = AppTheme.BgCard,
             AutoSize = true,
             Margin = new Padding(0, 4, 0, 4),
         };
