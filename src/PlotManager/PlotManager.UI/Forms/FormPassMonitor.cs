@@ -45,6 +45,7 @@ public class FormPassMonitor : Form
     private Button? _btnClean;
     private Button? _btnTrial;
     private Button? _btnSettings;
+    private Button? _btnEstop;       // ← E-STOP — always enabled
     private Label? _lblTrialStatus;
 
     // ── Phase 6: Field context panel ──
@@ -304,7 +305,68 @@ public class FormPassMonitor : Form
         };
         toolbar.Controls.Add(_btnSettings);
 
+        // ── E-STOP (right-aligned, always enabled) ──
+        // Placed right so it is reachable even with a gloved hand.
+        _btnEstop = new Button
+        {
+            Text = "⛔ E-STOP",
+            Size = new Size(110, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(183, 28, 28),   // Deep red — distinct from everything
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            Enabled = true,                             // ALWAYS enabled — safety critical
+            Anchor = AnchorStyles.Right | AnchorStyles.Top,
+        };
+        _btnEstop.FlatAppearance.BorderColor = Color.FromArgb(229, 57, 53);
+        _btnEstop.FlatAppearance.BorderSize = 1;
+        _btnEstop.Click += HandleEstop;
+        toolbar.Controls.Add(_btnEstop);
+        // Position after layout (right-side anchor won't resize until layout)
+        toolbar.SizeChanged += (_, _) =>
+            _btnEstop.Location = new Point(toolbar.Width - _btnEstop.Width - 8, 6);
+        _btnEstop.Location = new Point(toolbar.Width - _btnEstop.Width - 8, 6);
+
         return toolbar;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // E-STOP Handler
+    // ════════════════════════════════════════════════════════════════════
+
+    private void HandleEstop(object? sender, EventArgs e)
+    {
+        // 1. Force-close all valves immediately
+        _primeController?.ForceStop();
+        _sectionController.ActivateEmergencyStop();
+
+        // 2. Send all-zero packet to machine module via AOG channel
+        _aogClient.SendSectionControl(0x0000);
+
+        // 3. Stop trial recording to preserve data integrity
+        if (_trialLogger?.IsActive == true)
+        {
+            _trialLogger.StopSession();
+            if (_btnTrial != null)
+            {
+                _btnTrial.Text = "📝 Start Trial";
+                _btnTrial.BackColor = Color.FromArgb(76, 175, 80);
+            }
+        }
+
+        // 4. Log the event
+        _logger?.Error("ESTOP", "EMERGENCY STOP activated by operator");
+
+        // 5. Visual feedback — button becomes grey with text "STOPPED" until form reload
+        if (_btnEstop != null)
+        {
+            _btnEstop.Text = "✔ STOPPED";
+            _btnEstop.BackColor = Color.FromArgb(80, 80, 80);
+        }
+        if (_lblTrialStatus != null)
+            _lblTrialStatus.Text = "⛔ E-STOP activated";
+
+        _logger?.Info("ESTOP", "All valves closed, trial recording stopped");
     }
 
     // ════════════════════════════════════════════════════════════════════

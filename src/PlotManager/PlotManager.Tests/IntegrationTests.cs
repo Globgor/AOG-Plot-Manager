@@ -342,6 +342,54 @@ public class IntegrationTests : IDisposable
         Assert.Empty(routing.Validate(map));
     }
 
+    [Fact]
+    public void HardwareRouting_Validate_SharedChannel_ReportsContaminationRisk()
+    {
+        // TRIAL-4: Two products sharing the same valve channel would spray simultaneously
+        var routing = new HardwareRouting
+        {
+            ProductToSections = new Dictionary<string, List<int>>
+            {
+                ["Herbicide"] = new List<int> { 0, 1 },
+                ["Fungicide"] = new List<int> { 1, 2 }, // Channel 1 shared!
+            }
+        };
+        var map = new TrialMap
+        {
+            PlotAssignments = new Dictionary<string, string>
+            {
+                ["R1C1"] = "Herbicide",
+                ["R1C2"] = "Fungicide",
+            }
+        };
+
+        var errors = routing.Validate(map);
+        Assert.Single(errors);
+        Assert.Contains("channel 1", errors[0], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("contamination", errors[0], StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HardwareRouting_Validate_EmptySectionList_ReportsError()
+    {
+        // A product mapped to an empty list is equivalent to not mapped
+        var routing = new HardwareRouting
+        {
+            ProductToSections = new Dictionary<string, List<int>>
+            {
+                ["Herbicide"] = new List<int>(), // empty!
+            }
+        };
+        var map = new TrialMap
+        {
+            PlotAssignments = new Dictionary<string, string> { ["R1C1"] = "Herbicide" }
+        };
+
+        var errors = routing.Validate(map);
+        Assert.Single(errors);
+        Assert.Contains("Herbicide", errors[0]);
+    }
+
     // ════════════════════════════════════════════════════════════════════
     // AsAppliedLogger — session lifecycle
     // ════════════════════════════════════════════════════════════════════

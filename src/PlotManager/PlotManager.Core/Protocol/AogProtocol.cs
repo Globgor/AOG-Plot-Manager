@@ -10,10 +10,16 @@ namespace PlotManager.Core.Protocol;
 ///   [Sec33-40] [Sec41-48] [Sec49-56] [Sec57-64]
 ///   [Lspeed] [Rspeed] [CRC]
 ///
-/// PGN 253 (0xFD) — GPS Data:
+/// PGN 253 (0xFD) — GPS Data (proprietary AOG GPS broadcast):
 ///   [0x80] [0x81] [Src=0x7F] [PGN=0xFD] [Len]
-///   [Lat 4 bytes LE] [Lon 4 bytes LE] [Heading 2 bytes LE]
-///   [Speed 2 bytes LE] [...]
+///   [Lat 4 bytes LE × 1e-7] [Lon 4 bytes LE × 1e-7]
+///   [Heading 2 bytes LE × 0.1°] [Speed 2 bytes LE × 0.1 km/h]
+///   [FixQuality 1 byte] [COG 2 bytes LE × 0.1°]
+///
+/// NOTE: This is the proprietary AOG PGN used since v5.x hardware.
+/// The official ISOBUS-style "Main Antenna" PGN 214 (0xD6) exists in
+/// newer ISOBUS-aware builds and includes Roll/Altitude/HDOP fields —
+/// but is NOT used by the standard machine module firmware we target.
 /// </summary>
 public static class AogProtocol
 {

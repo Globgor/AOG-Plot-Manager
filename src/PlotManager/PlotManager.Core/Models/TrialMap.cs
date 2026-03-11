@@ -73,18 +73,47 @@ public class HardwareRouting
     }
 
     /// <summary>
-    /// Validates that all products in the trial map have assigned sections.
+    /// Validates that all products in the trial map have assigned sections,
+    /// and that no two products share the same valve channel (which would
+    /// cause simultaneous spray from two tanks — contaminating the trial).
     /// </summary>
     public List<string> Validate(TrialMap trialMap)
     {
         var errors = new List<string>();
+
+        // Check 1: Every product has at least one section
         foreach (string product in trialMap.Products)
         {
-            if (!ProductToSections.ContainsKey(product))
+            if (!ProductToSections.TryGetValue(product, out List<int>? sections) ||
+                sections.Count == 0)
             {
                 errors.Add($"Product '{product}' has no assigned boom section.");
             }
         }
+
+        // Check 2: No two products share the same valve channel
+        // Shared channels → both products spray simultaneously → trial contamination
+        var channelToProducts = new Dictionary<int, List<string>>();
+        foreach (var (product, sections) in ProductToSections)
+        {
+            foreach (int ch in sections)
+            {
+                if (!channelToProducts.TryGetValue(ch, out var list))
+                    channelToProducts[ch] = list = new List<string>();
+                list.Add(product);
+            }
+        }
+        foreach (var (channel, products) in channelToProducts)
+        {
+            if (products.Count > 1)
+            {
+                errors.Add(
+                    $"Valve channel {channel} is shared by products: " +
+                    $"{string.Join(", ", products)}. " +
+                    "Shared channels cause simultaneous spray — trial contamination risk.");
+            }
+        }
+
         return errors;
     }
 }
