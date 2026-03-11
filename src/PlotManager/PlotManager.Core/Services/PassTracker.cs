@@ -1,3 +1,4 @@
+using System.Globalization;
 using PlotManager.Core.Models;
 
 namespace PlotManager.Core.Services;
@@ -305,8 +306,8 @@ public class PassTracker
 
             return $"Проход {CurrentPass.PassNumber} " +
                 $"(Кол. {CurrentPass.ColumnIndex + 1}, {(CurrentPass.Direction == PassDirection.Up ? "↑" : "↓")}) " +
-                $"| Скорость: {CurrentPass.LockedSpeedKmh:F1} км/ч " +
-                $"| Макс. откл.: {CurrentPass.MaxSpeedDeviationPercent:F1}%";
+                $"| Скорость: {CurrentPass.LockedSpeedKmh.ToString("F1", CultureInfo.InvariantCulture)} км/ч " +
+                $"| Макс. откл.: {CurrentPass.MaxSpeedDeviationPercent.ToString("F1", CultureInfo.InvariantCulture)}%";
         }
     }
 

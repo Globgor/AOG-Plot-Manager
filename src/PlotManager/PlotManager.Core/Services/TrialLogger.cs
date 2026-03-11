@@ -185,7 +185,7 @@ public class TrialLogger : IDisposable
         _csvLogger.LogRecord(
             DateTime.UtcNow, _lastLatitude, _lastLongitude,
             _lastPlotId, _lastProduct, currentSpeed, 0,
-            $"SPEED_INTERLOCK: current={currentSpeed:F2} target={targetSpeed:F2} tol={tolerance:F0}%",
+            FormattableString.Invariant($"SPEED_INTERLOCK: current={currentSpeed:F2} target={targetSpeed:F2} tol={tolerance:F0}%"),
             offReason: "SPEED");
     }
 
@@ -218,7 +218,7 @@ public class TrialLogger : IDisposable
         _csvLogger.LogRecord(
             DateTime.UtcNow, _lastLatitude, _lastLongitude,
             _lastPlotId, _lastProduct, _lastSpeedKmh, 0,
-            $"{status}: pressure={pressureBar:F2} min={minSafe:F1}",
+            FormattableString.Invariant($"{status}: pressure={pressureBar:F2} min={minSafe:F1}"),
             offReason: status);
     }
 

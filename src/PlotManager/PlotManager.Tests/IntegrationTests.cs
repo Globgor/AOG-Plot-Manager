@@ -358,7 +358,7 @@ public class IntegrationTests : IDisposable
         Assert.True(File.Exists(logger.FilePath));
 
         // Header should be written immediately
-        string content = File.ReadAllText(logger.FilePath);
+        string content = ReadFileSafe(logger.FilePath);
         Assert.Contains("Timestamp,Latitude,Longitude,PlotId,Product", content);
         Assert.Contains("Air_Bar", content);
         Assert.Contains("Flow_1_Lpm", content);
@@ -376,7 +376,7 @@ public class IntegrationTests : IDisposable
         // Wait for background flush
         Thread.Sleep(200);
 
-        string content = File.ReadAllText(logger.FilePath!);
+        string content = ReadFileSafe(logger.FilePath!);
         Assert.Contains("50.10000000", content);
         Assert.Contains("30.20000000", content);
         Assert.Contains("R1C1", content);
@@ -396,7 +396,7 @@ public class IntegrationTests : IDisposable
 
         Thread.Sleep(200);
 
-        string content = File.ReadAllText(logger.FilePath!);
+        string content = ReadFileSafe(logger.FilePath!);
         Assert.Contains("3.50", content); // Air pressure
         Assert.Contains("1.500", content); // Flow 1
         Assert.Contains("2.000", content); // Flow 2
@@ -415,7 +415,7 @@ public class IntegrationTests : IDisposable
 
         logger.StopSession();
 
-        string content = File.ReadAllText(logger.FilePath!);
+        string content = ReadFileSafe(logger.FilePath!);
         Assert.Contains("# SHA256:", content);
         // SHA256 hex is 64 characters
         string hashLine = content.Split('\n').Last(l => l.StartsWith("# SHA256:"));
@@ -442,7 +442,7 @@ public class IntegrationTests : IDisposable
         logger.LogMeteoCheck(22.5, 65.0, 3.2, "NW");
         Thread.Sleep(200);
 
-        string content = File.ReadAllText(logger.FilePath!);
+        string content = ReadFileSafe(logger.FilePath!);
         Assert.Contains("METEO", content);
         Assert.Contains("Temp=22.5", content);
         Assert.Contains("Humidity=65%", content);
@@ -509,7 +509,7 @@ public class IntegrationTests : IDisposable
         logger.LogRecord(DateTime.UtcNow, 50.0, 30.0, null, null, 0, 0);
         Thread.Sleep(200);
 
-        string content = File.ReadAllText(logger.FilePath!);
+        string content = ReadFileSafe(logger.FilePath!);
         Assert.Contains("BUFFER", content);
         Assert.Contains("NONE", content);
     }
@@ -601,5 +601,13 @@ public class IntegrationTests : IDisposable
         string path = Path.Combine(_tmpDir, filename);
         File.WriteAllText(path, content);
         return path;
+    }
+
+    /// <summary>Reads file while writer may still hold it open.</summary>
+    private static string ReadFileSafe(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var sr = new StreamReader(fs);
+        return sr.ReadToEnd();
     }
 }

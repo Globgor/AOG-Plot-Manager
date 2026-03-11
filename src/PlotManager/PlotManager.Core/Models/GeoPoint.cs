@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace PlotManager.Core.Models;
 
 /// <summary>
@@ -48,7 +50,9 @@ public readonly struct GeoPoint
         return R * c;
     }
 
-    public override string ToString() => $"({Latitude:F6}, {Longitude:F6})";
+    public override string ToString() =>
+        $"({Latitude.ToString("F6", CultureInfo.InvariantCulture)}, " +
+        $"{Longitude.ToString("F6", CultureInfo.InvariantCulture)})";
 
     private static double ToRadians(double degrees) => degrees * Math.PI / 180.0;
 

@@ -337,7 +337,7 @@ public class SafetyInterlockTests
             logger.StartSession(tempDir, "WeatherTest", weather);
             logger.StopSession();
 
-            string content = File.ReadAllText(logger.FilePath!);
+            string content = ReadFileSafe(logger.FilePath!);
             Assert.Contains("METEO", content);
             Assert.Contains("22.5", content);
             Assert.Contains("NW", content);
@@ -373,5 +373,13 @@ public class SafetyInterlockTests
             if (Directory.Exists(tempDir))
                 Directory.Delete(tempDir, true);
         }
+    }
+
+    /// <summary>Reads file while writer may still hold it open.</summary>
+    private static string ReadFileSafe(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var sr = new StreamReader(fs);
+        return sr.ReadToEnd();
     }
 }

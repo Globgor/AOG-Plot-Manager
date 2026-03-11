@@ -56,7 +56,9 @@ public class AsAppliedLogger : IDisposable
         string safeName = SanitizeFilename(trialName);
         FilePath = Path.Combine(directory, $"as_applied_{safeName}_{timestamp}.csv");
 
-        _writer = new StreamWriter(FilePath, false, Encoding.UTF8);
+        // FileShare.Read allows tests/external tools to read the file during writing
+        var fs = new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+        _writer = new StreamWriter(fs, Encoding.UTF8);
 
         // Write header directly (before starting background thread)
         var header = "Timestamp,Latitude,Longitude,PlotId,Product,SpeedKmh,ValveMask,Notes";
@@ -195,16 +197,19 @@ public class AsAppliedLogger : IDisposable
     {
         if (_disposed || !_sessionActive) return;
 
-        string notes = $"METEO: Temp={temperatureC:F1}°C Humidity={humidityPercent:F0}% " +
-                       $"Wind={windSpeedMs:F1}m/s Dir={windDirection ?? "N/A"}";
+        string notes = FormattableString.Invariant($"METEO: Temp={temperatureC:F1}\u00b0C Humidity={humidityPercent:F0}% ") +
+                       FormattableString.Invariant($"Wind={windSpeedMs:F1}m/s Dir={windDirection ?? "N/A"}");
 
         string line = string.Join(",",
             DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture),
             "0", "0", "SYSTEM", "METEO", "0", "0x0000", EscapeCsv(notes));
 
-        // L2 FIX: Pad sensor columns to match 19-column header
+        // L2 FIX: Pad sensor columns to match header
         line += ",NaN";
         for (int i = 0; i < 10; i++) line += ",NaN";
+
+        // GEP columns (FixQuality, HeadingDeg, OffReason) — empty for meteo records
+        line += ",,,";
 
         _queue.Enqueue(line);
     }

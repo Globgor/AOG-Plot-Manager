@@ -35,7 +35,7 @@ public class ObservabilityTests
             Assert.NotNull(logger.FilePath);
             Assert.True(File.Exists(logger.FilePath));
 
-            string content = File.ReadAllText(logger.FilePath);
+            string content = ReadFileSafe(logger.FilePath);
             Assert.Contains("[INFO] [TestSrc] Hello info", content);
             Assert.Contains("[WARN] [TestSrc] Hello warn", content);
             Assert.Contains("[ERROR] [TestSrc] Hello error | InvalidOperationException: boom", content);
@@ -80,7 +80,7 @@ public class ObservabilityTests
             logger.StartSession(dir, "test");
             logger.StopSession();
 
-            string content = File.ReadAllText(logger.FilePath!);
+            string content = ReadFileSafe(logger.FilePath!);
             string header = content.Split('\n')[0];
 
             Assert.Contains("FixQuality", header);
@@ -110,7 +110,7 @@ public class ObservabilityTests
             Thread.Sleep(200);
             logger.StopSession();
 
-            string content = File.ReadAllText(logger.FilePath!);
+            string content = ReadFileSafe(logger.FilePath!);
             Assert.Contains("RTK_FIX", content);
             Assert.Contains("180.5", content);
             Assert.Contains("SPEED", content);
@@ -139,7 +139,7 @@ public class ObservabilityTests
             Thread.Sleep(200);
             logger.StopSession();
 
-            string content = File.ReadAllText(logger.FilePath!);
+            string content = ReadFileSafe(logger.FilePath!);
             string lastLine = content.TrimEnd().Split('\n').Last();
 
             Assert.StartsWith("# SHA256: ", lastLine);
@@ -364,7 +364,7 @@ public class ObservabilityTests
 
             // Read the CSV file
             string csvPath = Directory.GetFiles(dir, "*.csv").First();
-            string content = File.ReadAllText(csvPath);
+            string content = ReadFileSafe(csvPath);
 
             Assert.Contains("RTK_DEGRADED", content);
             Assert.Contains("RTK_LOST", content);
@@ -392,7 +392,7 @@ public class ObservabilityTests
             logger.StopSession();
 
             string csvPath = Directory.GetFiles(dir, "*.csv").First();
-            string content = File.ReadAllText(csvPath);
+            string content = ReadFileSafe(csvPath);
 
             Assert.Contains("AIR_PRESSURE_LOST", content);
             Assert.Contains("1.50", content);
@@ -424,7 +424,7 @@ public class ObservabilityTests
             logger.StopSession();
 
             string csvPath = Directory.GetFiles(dir, "*.csv").First();
-            string content = File.ReadAllText(csvPath);
+            string content = ReadFileSafe(csvPath);
 
             Assert.Contains("SESSION_SUMMARY", content);
             Assert.Contains("InterlockEvents=1", content);
@@ -486,5 +486,13 @@ public class ObservabilityTests
     {
         var logger = new TrialLogger { LogAllStates = true };
         Assert.True(logger.LogAllStates);
+    }
+
+    /// <summary>Reads file while writer may still hold it open.</summary>
+    private static string ReadFileSafe(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var sr = new StreamReader(fs);
+        return sr.ReadToEnd();
     }
 }

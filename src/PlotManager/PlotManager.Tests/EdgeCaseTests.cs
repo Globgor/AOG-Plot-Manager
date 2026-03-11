@@ -299,7 +299,7 @@ public class EdgeCaseTests
             logger.StopSession();
 
             string csvPath = Directory.GetFiles(dir, "*.csv").First();
-            string content = File.ReadAllText(csvPath);
+            string content = ReadFileSafe(csvPath);
 
             // When LogAllStates=true, even InAlley state should produce entries
             // The default BoomState is InAlley (0), so ticker should log
@@ -725,5 +725,13 @@ public class EdgeCaseTests
         Assert.False(snapshot.IsStale);
         Assert.False(snapshot.IsEstop);
         Assert.True(snapshot.FlowRatesLpm[0] > 0);
+    }
+
+    /// <summary>Reads file while writer may still hold it open.</summary>
+    private static string ReadFileSafe(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var sr = new StreamReader(fs);
+        return sr.ReadToEnd();
     }
 }
