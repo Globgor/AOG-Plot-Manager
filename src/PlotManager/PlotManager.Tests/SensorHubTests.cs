@@ -319,11 +319,6 @@ public class SensorHubTests
     {
         var profile = new MachineProfile();
 
-        Assert.Equal(0.5, profile.AirPressureVoltageOffset);
-        Assert.Equal(2.5, profile.AirPressureVoltageMultiplier);
-        Assert.Equal(400.0, profile.FlowMeterPulsesPerLiter);
-        Assert.Equal(2.0, profile.MinSafeAirPressureBar);
-        Assert.Equal(9999, profile.SensorUdpPort);
     }
 
     [Fact]
@@ -331,22 +326,13 @@ public class SensorHubTests
     {
         var profile = new MachineProfile
         {
-            AirPressureVoltageOffset = 0.6,
-            AirPressureVoltageMultiplier = 3.0,
-            FlowMeterPulsesPerLiter = 500.0,
-            MinSafeAirPressureBar = 1.5,
-            SensorUdpPort = 8888,
             Booms = { new BoomProfile { BoomId = 0, Name = "Test", ValveChannel = 0 } },
         };
 
         string json = profile.ToJson();
         var restored = MachineProfile.FromJson(json);
 
-        Assert.Equal(0.6, restored.AirPressureVoltageOffset);
-        Assert.Equal(3.0, restored.AirPressureVoltageMultiplier);
-        Assert.Equal(500.0, restored.FlowMeterPulsesPerLiter);
-        Assert.Equal(1.5, restored.MinSafeAirPressureBar);
-        Assert.Equal(8888, restored.SensorUdpPort);
+        Assert.Single(restored.Booms);
     }
 
     [Fact]
@@ -354,19 +340,12 @@ public class SensorHubTests
     {
         var profile = new MachineProfile
         {
-            AirPressureVoltageOffset = 0.7,
-            AirPressureVoltageMultiplier = 3.5,
-            FlowMeterPulsesPerLiter = 600.0,
-            SensorUdpPort = 7777,
             Booms = { new BoomProfile { BoomId = 0, Name = "Test", ValveChannel = 0 } },
         };
 
         var hub = new SensorHub();
         hub.Configure(profile);
 
-        Assert.Equal(0.7, hub.AirPressureVoltageOffset);
-        Assert.Equal(3.5, hub.AirPressureVoltageMultiplier);
-        Assert.Equal(600.0, hub.FlowMeterPulsesPerLiter);
-        Assert.Equal(7777, hub.ListenPort);
+        // Configuration is now separated from MachineProfile
     }
 }

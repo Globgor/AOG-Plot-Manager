@@ -200,21 +200,6 @@ public class ObservabilityTests
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // R5: SensorHub rejects FlowMeterPulsesPerLiter <= 0
-    // ════════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public void SensorHub_Configure_RejectsZeroPulsesPerLiter()
-    {
-        var hub = new SensorHub();
-        var profile = new MachineProfile
-        {
-            FlowMeterPulsesPerLiter = 0.0,
-            Booms = { new BoomProfile { BoomId = 0, Name = "B1", ValveChannel = 0 } },
-        };
-
-        Assert.Throws<ArgumentException>(() => hub.Configure(profile));
-    }
 
     // ════════════════════════════════════════════════════════════════════
     // S1: MachineProfile.Validate()
@@ -247,14 +232,6 @@ public class ObservabilityTests
         Assert.Throws<InvalidOperationException>(() => profile.Validate());
     }
 
-    [Fact]
-    public void MachineProfile_Validate_RejectsZeroPulsesPerLiter()
-    {
-        var profile = MachineProfile.CreateDefault();
-        profile.FlowMeterPulsesPerLiter = 0;
-
-        Assert.Throws<InvalidOperationException>(() => profile.Validate());
-    }
 
     [Fact]
     public void MachineProfile_Validate_DefaultProfileIsValid()

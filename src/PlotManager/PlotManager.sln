@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlotManager.UI", "PlotManager.UI\PlotManager.UI.csproj", "{5B83F8A6-BA2E-4AB5-BEB0-F5524739EAFF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlotManager.Avalonia", "PlotManager.Avalonia\PlotManager.Avalonia.csproj", "{942CC84A-5B90-42A7-9190-E6246CF7EFFD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{5B83F8A6-BA2E-4AB5-BEB0-F5524739EAFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B83F8A6-BA2E-4AB5-BEB0-F5524739EAFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B83F8A6-BA2E-4AB5-BEB0-F5524739EAFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{942CC84A-5B90-42A7-9190-E6246CF7EFFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{942CC84A-5B90-42A7-9190-E6246CF7EFFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{942CC84A-5B90-42A7-9190-E6246CF7EFFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{942CC84A-5B90-42A7-9190-E6246CF7EFFD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

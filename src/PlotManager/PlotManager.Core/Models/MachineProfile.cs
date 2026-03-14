@@ -3,41 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace PlotManager.Core.Models;
 
-/// <summary>
-/// Fluid type preset — affects expected hydraulic delays.
-/// </summary>
-public enum FluidType
-{
-    /// <summary>Clean water (fastest response).</summary>
-    Water,
 
-    /// <summary>Water-based solution with surfactant.</summary>
-    WaterSolution,
 
-    /// <summary>Oil-based adjuvant (slowest, most viscous).</summary>
-    OilAdjuvant,
 
-    /// <summary>Suspension/emulsion.</summary>
-    Suspension,
-}
-
-/// <summary>
-/// Nozzle specification — for reporting and flow rate validation.
-/// </summary>
-public class NozzleSpec
-{
-    /// <summary>Nozzle model (e.g. "TeeJet XR 110-03").</summary>
-    public string Model { get; set; } = string.Empty;
-
-    /// <summary>Spray angle in degrees (e.g. 110).</summary>
-    public int SprayAngleDegrees { get; set; } = 110;
-
-    /// <summary>Nominal flow rate at 3 bar (liters/min).</summary>
-    public double FlowRateLPerMin { get; set; } = 1.2;
-
-    /// <summary>Nozzle color code (ISO standard).</summary>
-    public string ColorCode { get; set; } = string.Empty;
-}
 
 /// <summary>
 /// Connection settings for hardware communication.
@@ -50,8 +18,7 @@ public class ConnectionSettings
     /// <summary>Baud rate for Teensy communication.</summary>
     public int TeensyBaudRate { get; set; } = 115200;
 
-    /// <summary>Serial port for weather station NMEA (empty = disabled).</summary>
-    public string WeatherComPort { get; set; } = string.Empty;
+
 
     /// <summary>UDP port for receiving PGN broadcasts from AgOpenGPS (AOG sends to modules on 8888).</summary>
     public int AogUdpListenPort { get; set; } = 8888;
@@ -108,8 +75,7 @@ public class BoomProfile
     /// <summary>Whether this boom is installed/enabled.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Hose length from manifold to this boom's nozzle (meters). For documentation.</summary>
-    public double HoseLengthMeters { get; set; }
+
 
     /// <summary>
     /// Returns effective activation delay: per-boom override or global fallback.
@@ -142,27 +108,7 @@ public class MachineProfile
     /// <summary>Last modification timestamp (ISO 8601).</summary>
     public DateTime LastModifiedUtc { get; set; } = DateTime.UtcNow;
 
-    // ── Geometry ──
 
-    /// <summary>
-    /// GPS antenna height above ground (meters).
-    /// Used for slope correction of horizontal position.
-    /// </summary>
-    public double AntennaHeightMeters { get; set; } = 2.5;
-
-    /// <summary>Track width / wheelbase (meters). Informational — for report headers.</summary>
-    public double TrackWidthMeters { get; set; } = 2.25;
-
-    /// <summary>
-    /// Fluid temperature at calibration time (°C). Informational.
-    /// Higher viscosity at low temps = longer delays.
-    /// </summary>
-    public double FluidTemperatureCelsius { get; set; } = 20.0;
-
-    // ── Hydraulic System ──
-
-    /// <summary>Fluid type preset — for documentation and delay suggestions.</summary>
-    public FluidType FluidType { get; set; } = FluidType.Water;
 
     /// <summary>
     /// Global valve activation delay in ms (default for all booms).
@@ -173,8 +119,7 @@ public class MachineProfile
     /// <summary>Global valve deactivation delay in ms.</summary>
     public double SystemDeactivationDelayMs { get; set; } = 150;
 
-    /// <summary>Operating pressure at the manifold (bar). For logging/QC reports.</summary>
-    public double OperatingPressureBar { get; set; } = 3.0;
+
 
     // ── Spatial Offsets ──
 
@@ -195,66 +140,12 @@ public class MachineProfile
 
     // ── GPS/RTK ──
 
-    /// <summary>
-    /// Seconds to wait after RTK fix is lost before triggering E-STOP.
-    /// Prevents false alarms from single dropped packets.
-    /// 0 = instant E-STOP on any quality drop.
-    /// </summary>
-    public double RtkLossTimeoutSeconds { get; set; } = 2.0;
+
 
     /// <summary>GPS update frequency in Hz. Used for acceleration filter calibration.</summary>
     public int GpsUpdateRateHz { get; set; } = 10;
 
-    // ── Speed Limits ──
 
-    /// <summary>Target trial speed (km/h).</summary>
-    public double TargetSpeedKmh { get; set; } = 5.0;
-
-    /// <summary>Speed tolerance (± km/h) around target.</summary>
-    public double SpeedToleranceKmh { get; set; } = 1.0;
-
-    // ── Nozzle ──
-
-    /// <summary>Nozzle specification for all booms (reporting / flow rate validation).</summary>
-    public NozzleSpec Nozzle { get; set; } = new();
-
-    /// <summary>Target application rate (liters per hectare).</summary>
-    public double TargetRateLPerHa { get; set; } = 200;
-
-    // ── Sensor Calibration ──
-
-    /// <summary>
-    /// Air pressure sensor voltage at 0 Bar (sensor offset).
-    /// Typical 0.5V–4.5V sensor: offset = 0.5V.
-    /// </summary>
-    public double AirPressureVoltageOffset { get; set; } = 0.5;
-
-    /// <summary>
-    /// Multiplier to convert (voltage - offset) to Bar.
-    /// For a 0.5V–4.5V = 0–10 Bar sensor: multiplier = 10 / (4.5 - 0.5) = 2.5.
-    /// Formula: Bar = (Voltage - Offset) * Multiplier.
-    /// </summary>
-    public double AirPressureVoltageMultiplier { get; set; } = 2.5;
-
-    /// <summary>
-    /// Flow meter calibration: pulses per liter.
-    /// Used for all 10 flow meters (assumes identical sensors).
-    /// Formula: Lpm = (Hz * 60) / PulsesPerLiter.
-    /// </summary>
-    public double FlowMeterPulsesPerLiter { get; set; } = 400.0;
-
-    /// <summary>
-    /// Minimum safe pneumatic air pressure (Bar).
-    /// Below this threshold for 2+ seconds → E-STOP all booms.
-    /// 0 = disable pressure interlock.
-    /// </summary>
-    public double MinSafeAirPressureBar { get; set; } = 2.0;
-
-    /// <summary>
-    /// UDP port for receiving JSON sensor telemetry from Teensy.
-    /// Teensy sends: {"AirV": float, "FlowHz": float[10]}
-    /// </summary>
-    public int SensorUdpPort { get; set; } = 9999;
 
     // ── Connections ──
 
@@ -340,21 +231,9 @@ public class MachineProfile
                 errors.Add($"Duplicate ValveChannel {bp.ValveChannel} in boom '{bp.Name}'.");
         }
 
-        // Calibration
-        if (FlowMeterPulsesPerLiter <= 0)
-            errors.Add($"FlowMeterPulsesPerLiter must be > 0, got {FlowMeterPulsesPerLiter}");
-        if (AirPressureVoltageMultiplier <= 0)
-            errors.Add($"AirPressureVoltageMultiplier must be > 0, got {AirPressureVoltageMultiplier}");
 
-        // Speed
-        if (TargetSpeedKmh < 0)
-            errors.Add($"TargetSpeedKmh must be ≥ 0, got {TargetSpeedKmh}");
-        if (SpeedToleranceKmh < 0)
-            errors.Add($"SpeedToleranceKmh must be ≥ 0, got {SpeedToleranceKmh}");
 
-        // RTK
-        if (RtkLossTimeoutSeconds < 0)
-            errors.Add($"RtkLossTimeoutSeconds must be ≥ 0, got {RtkLossTimeoutSeconds}");
+
 
         // GPS Hz
         if (GpsUpdateRateHz <= 0)
@@ -430,15 +309,9 @@ public class MachineProfile
     /// <summary>
     /// Applies speed + RTK settings to SectionController.
     /// </summary>
-    public void ApplyToSectionController(PlotManager.Core.Services.SectionController controller)
-    {
-        controller.TargetSpeedKmh = TargetSpeedKmh;
-        controller.RtkLossTimeoutSeconds = RtkLossTimeoutSeconds;
-        if (TargetSpeedKmh > 0)
-        {
-            controller.SpeedToleranceFraction = SpeedToleranceKmh / TargetSpeedKmh;
-        }
-    }
+        // The AgOpenGPS rate controller handles speed/RTK loss.
+        // If we want the PlotManager to enforce these locally again,
+        // we'd add properties to the PlotManager config directly.
 
     /// <summary>
     /// Creates a per-boom delay provider function for use with

@@ -207,7 +207,7 @@ public sealed class FormProfileManager : Form
             {
                 var p = MachineProfile.LoadFromFile(file);
                 string display = $"  {p.ProfileName}   " +
-                    $"({p.Booms.Count} штанг, {p.Nozzle.Model})";
+                    $"({p.Booms.Count} штанг)";
                 _lstProfiles.Items.Add(new ProfileListItem(file, p, display));
             }
             catch
@@ -234,10 +234,7 @@ public sealed class FormProfileManager : Form
         int enabled = p.Booms.Count(b => b.Enabled);
         _lblDetails.Text =
             $"📋 {p.ProfileName}   |   " +
-            $"🔧 {p.Booms.Count} штанг ({enabled} акт.)   |   " +
-            $"💧 {p.Nozzle.Model} ({p.Nozzle.ColorCode})   |   " +
-            $"🚜 {p.TargetSpeedKmh:F1} км/год   |   " +
-            $"📊 {p.TargetRateLPerHa:F0} л/га\n" +
+            $"🔧 {p.Booms.Count} штанг ({enabled} акт.)\n" +
             $"📅 {File.GetLastWriteTime(item.FilePath):yyyy-MM-dd HH:mm}   |   " +
             $"📁 {Path.GetFileName(item.FilePath)}";
     }

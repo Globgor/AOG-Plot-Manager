@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json.Serialization;
 
 namespace PlotManager.Core.Models;
@@ -8,6 +9,8 @@ namespace PlotManager.Core.Models;
 /// </summary>
 public class Product
 {
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
     /// <summary>Product name (e.g. "Базагран 480 г/л").</summary>
     public string Name { get; set; } = string.Empty;
 
@@ -20,12 +23,13 @@ public class Product
     /// </summary>
     public double ConcentrationPercent { get; set; }
 
-    /// <summary>Fluid type — affects hydraulic delays and viscosity.</summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    public FluidType FluidType { get; set; } = FluidType.WaterSolution;
+
 
     /// <summary>UI color for plot visualization (hex, e.g. "#FF6600").</summary>
     public string ColorHex { get; set; } = "#2196F3";
+
+    /// <summary>For agronomic calculations: what active ingredients this product contains.</summary>
+    public System.Collections.Generic.List<ProductActiveIngredient> ActiveIngredients { get; set; } = new();
 
     /// <summary>True if this is a control treatment (water only).</summary>
     public bool IsControl { get; set; }

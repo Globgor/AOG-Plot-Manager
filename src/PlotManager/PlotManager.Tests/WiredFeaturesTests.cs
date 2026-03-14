@@ -217,17 +217,6 @@ public class WiredFeaturesTests
         Assert.Equal(0.5, engine.AccelerationSmoothingAlpha); // Low Hz → more smoothing
     }
 
-    [Fact]
-    public void ApplyToController_IncludesRtkTimeout()
-    {
-        var ctrl = new SectionController();
-        var profile = new MachineProfile { RtkLossTimeoutSeconds = 5.0 };
-
-        profile.ApplyToSectionController(ctrl);
-
-        Assert.Equal(5.0, ctrl.RtkLossTimeoutSeconds);
-    }
-
     // ════════════════════════════════════════════════════════════════════
     // New model fields
     // ════════════════════════════════════════════════════════════════════
@@ -239,22 +228,12 @@ public class WiredFeaturesTests
         Assert.Equal(1.5, bp.XOffsetMeters);
     }
 
-    [Fact]
-    public void MachineProfile_HasTrackWidthAndFluidTemp()
-    {
-        var profile = new MachineProfile();
-
-        Assert.Equal(2.25, profile.TrackWidthMeters);
-        Assert.Equal(20.0, profile.FluidTemperatureCelsius);
-    }
 
     [Fact]
-    public void JsonRoundTrip_PreservesNewFields()
+    public void JsonRoundTrip_PreservesBoomXOffset()
     {
         var profile = new MachineProfile
         {
-            TrackWidthMeters = 2.50,
-            FluidTemperatureCelsius = 15.0,
             Booms = new()
             {
                 new BoomProfile { BoomId = 0, XOffsetMeters = 0.75 },
@@ -264,8 +243,6 @@ public class WiredFeaturesTests
         string json = profile.ToJson();
         MachineProfile restored = MachineProfile.FromJson(json);
 
-        Assert.Equal(2.50, restored.TrackWidthMeters);
-        Assert.Equal(15.0, restored.FluidTemperatureCelsius);
         Assert.Equal(0.75, restored.Booms[0].XOffsetMeters);
     }
 }

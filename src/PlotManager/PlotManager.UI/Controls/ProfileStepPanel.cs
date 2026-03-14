@@ -17,8 +17,6 @@ public sealed class ProfileStepPanel : UserControl
     private Panel _summaryCard = null!;
     private Label _lblProfileName = null!;
     private Label _lblBoomCount = null!;
-    private Label _lblNozzle = null!;
-    private Label _lblSpeed = null!;
     private Label _lblConnections = null!;
     private Label _lblStatus = null!;
 
@@ -128,7 +126,7 @@ public sealed class ProfileStepPanel : UserControl
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 6,
+            RowCount = 4,
             ColumnStyles =
             {
                 new ColumnStyle(SizeType.Percent, 35),
@@ -140,7 +138,7 @@ public sealed class ProfileStepPanel : UserControl
             Padding = new Padding(16, 12, 16, 12),
         };
         // Each row auto-sizes to label content
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 4; i++)
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         _lblStatus = new Label
@@ -157,9 +155,7 @@ public sealed class ProfileStepPanel : UserControl
 
         _lblProfileName = AddInfoRow(layout, "📋 Назва:", "—", 1);
         _lblBoomCount = AddInfoRow(layout, "🔧 Штанги:", "—", 2);
-        _lblNozzle = AddInfoRow(layout, "💧 Форсунка:", "—", 3);
-        _lblSpeed = AddInfoRow(layout, "🚜 Швидкість:", "—", 4);
-        _lblConnections = AddInfoRow(layout, "🔌 З'єднання:", "—", 5);
+        _lblConnections = AddInfoRow(layout, "🔌 З'єднання:", "—", 3);
 
         _summaryCard.Controls.Add(layout);
     }
@@ -206,8 +202,6 @@ public sealed class ProfileStepPanel : UserControl
             _lblStatus.ForeColor = AppTheme.AccentOrange;
             _lblProfileName.Text = "—";
             _lblBoomCount.Text = "—";
-            _lblNozzle.Text = "—";
-            _lblSpeed.Text = "—";
             _lblConnections.Text = "—";
             return;
         }
@@ -218,14 +212,6 @@ public sealed class ProfileStepPanel : UserControl
 
         int enabled = _profile.Booms.Count(b => b.Enabled);
         _lblBoomCount.Text = $"{_profile.Booms.Count} шт. ({enabled} активних)";
-
-        _lblNozzle.Text = string.IsNullOrEmpty(_profile.Nozzle.Model)
-            ? "Не задано"
-            : $"{_profile.Nozzle.Model} ({_profile.Nozzle.ColorCode}), " +
-              $"{_profile.Nozzle.FlowRateLPerMin:F1} л/хв, " +
-              $"норма {_profile.TargetRateLPerHa:F0} л/га";
-
-        _lblSpeed.Text = $"{_profile.TargetSpeedKmh:F1} ± {_profile.SpeedToleranceKmh:F1} км/год";
 
         _lblConnections.Text =
             $"Teensy: {_profile.Connection.TeensyComPort}, " +

@@ -13,27 +13,8 @@ using PlotManager.Core.Services;
 public class FormMachineProfile : Form
 {
     private readonly MachineProfile _profile;
-    private readonly NozzleCatalog _catalog;
 
-    // ── Tab 1: Nozzle + Calculator ──
-    // Inputs: speed + target rate → outputs: pressure + flow/min + nozzle suggestion
-    private ComboBox _cmbNozzle = null!;
-    private ComboBox _cmbNozzleType = null!;
-    private NumericUpDown _nudSprayAngle = null!;
-    private NumericUpDown _nudFlowRate = null!;
-    private TextBox _txtNozzleColor = null!;
-    private NumericUpDown _nudTargetRate = null!;
-    private NumericUpDown _nudCalcSpeed = null!;
-    private NumericUpDown _nudCalcSwath = null!;
-    private NumericUpDown _nudCalcNozzlesPerBoom = null!;
-    private Label _lblCalcPressure = null!;
-    private Label _lblCalcFlowPerNozzle = null!;
-    private Label _lblCalcActualRate = null!;
-    private Label _lblCalcNozzleSuggestion = null!;
-    private Label _lblCalcRecommendedSpeed = null!;
-    private Label _lblCalcWarnings = null!;
-
-    // ── Tab 2: Booms ──
+    // ── Tab 1: Booms ──
     private DataGridView _dgvBooms = null!;
 
     // ── Tab 3: Delays ──
@@ -42,17 +23,13 @@ public class FormMachineProfile : Form
     private NumericUpDown _nudPreActivation = null!;
     private NumericUpDown _nudPreDeactivation = null!;
 
-    // ── Tab 4: Speed + GPS ──
-    private NumericUpDown _nudTargetSpeed = null!;
-    private NumericUpDown _nudSpeedTolerance = null!;
+    // ── Tab 4: GPS ──
     private NumericUpDown _nudCogThreshold = null!;
-    private NumericUpDown _nudRtkTimeout = null!;
     private NumericUpDown _nudGpsHz = null!;
 
     // ── Tab 5: Connections ──
     private TextBox _txtTeensyPort = null!;
     private NumericUpDown _nudBaudRate = null!;
-    private TextBox _txtWeatherPort = null!;
     private NumericUpDown _nudAogListenPort = null!;
     private NumericUpDown _nudAogSendPort = null!;
     private TextBox _txtAogHost = null!;
@@ -60,9 +37,6 @@ public class FormMachineProfile : Form
     // ── Tab 6: Identity ──
     private TextBox _txtProfileName = null!;
     private TextBox _txtNotes = null!;
-    private ComboBox _cmbFluidType = null!;
-    private NumericUpDown _nudPressure = null!;
-    private NumericUpDown _nudAntennaHeight = null!;
 
     /// <summary>The configured profile (valid after DialogResult.OK).</summary>
     public MachineProfile Profile => _profile;
@@ -70,7 +44,6 @@ public class FormMachineProfile : Form
     public FormMachineProfile(MachineProfile? existingProfile = null)
     {
         _profile = existingProfile ?? MachineProfile.CreateDefault();
-        _catalog = NozzleCatalog.CreateDefault();
         InitializeComponents();
         PopulateFromProfile();
     }
@@ -97,7 +70,6 @@ public class FormMachineProfile : Form
 
         // Identity first — name the profile before configuring
         tabControl.TabPages.Add(BuildTabGeneral());
-        tabControl.TabPages.Add(BuildTabNozzle());
         tabControl.TabPages.Add(BuildTabBooms());
         tabControl.TabPages.Add(BuildTabDelays());
         tabControl.TabPages.Add(BuildTabSpeedGps());
@@ -137,215 +109,6 @@ public class FormMachineProfile : Form
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Tab 1: Nozzle + Calculator
-    // User inputs: speed + target rate → outputs: pressure + flow/min + nozzle
-    // ════════════════════════════════════════════════════════════════════
-    private TabPage BuildTabNozzle()
-    {
-        var tab = new TabPage("💧 Форсунка");
-        var p = MakePanel();
-
-        // ── Section 1: What do you want? ──
-        AddSectionHeader(p, "📝 Що потрібно? (задайте параметри)", ref _row);
-        AddInfoLabel(p,
-            "Задайте бажану швидкість та норму внесення — " +
-            "калькулятор підкаже тиск та яку форсунку поставити.");
-
-        _nudCalcSpeed = AddNumericRow(p, "🚜 Швидкість (км/год):", 1, 20, 0.5m, 6.0m);
-        _nudTargetRate = AddNumericRow(p, "💧 Норма внесення (л/га):", 10, 1000, 10, 200);
-        _nudCalcSwath = AddNumericRow(p, "📏 Ширина захвату (м):", 0.1m, 50, 0.01m, 2.80m);
-        _nudCalcNozzlesPerBoom = AddNumericRow(p, "🔢 Форсунок на штангу:", 1, 100, 1, 1);
-
-        // ── Section 2: Type filter ──
-        AddSectionHeader(p, "🔍 Тип форсунки", ref _row);
-        _cmbNozzleType = AddComboRow(p, "Тип:",
-            new[] { "Всі", "Щілинні (Slit)", "Інжекторні (Injector)" });
-
-        // ── Section 3: Current nozzle (manual or from catalog) ──
-        AddSectionHeader(p, "📦 Обрана форсунка", ref _row);
-        _cmbNozzle = AddComboRow(p, "Форсунка:",
-            _catalog.Nozzles.Select(n => n.ToString()).ToArray());
-
-        _nudSprayAngle = AddNumericRow(p, "Кут розпилу (°):", 60, 180, 5, 110);
-        _nudSprayAngle.ReadOnly = true;
-        _nudSprayAngle.BackColor = AppTheme.BgCard;
-
-        _nudFlowRate = AddNumericRow(p, "Вилив (л/хв) [з каталогу]:", 0.1m, 10, 0.01m, 1.14m);
-        _nudFlowRate.ReadOnly = true;
-        _nudFlowRate.BackColor = AppTheme.BgCard;
-
-        _txtNozzleColor = AddTextRow(p, "Колір (ISO):");
-        _txtNozzleColor.ReadOnly = true;
-        _txtNozzleColor.BackColor = AppTheme.BgCard;
-
-        // ── Section 4: Calculator output ──
-        AddSectionHeader(p, "📊 Результат розрахунку", ref _row);
-        _lblCalcPressure = AddResultLabel(p, "");
-        _lblCalcFlowPerNozzle = AddResultLabel(p, "");
-        _lblCalcRecommendedSpeed = AddResultLabel(p, "");
-        _lblCalcActualRate = AddResultLabel(p, "");
-        _lblCalcNozzleSuggestion = AddResultLabel(p, "");
-        _lblCalcNozzleSuggestion.MaximumSize = new System.Drawing.Size(800, 0);
-        _lblCalcWarnings = AddResultLabel(p, "");
-        _lblCalcWarnings.MaximumSize = new System.Drawing.Size(800, 0);
-
-        // Wire up live recalculation on any input change
-        _cmbNozzle.SelectedIndexChanged += OnNozzleSelectionChanged;
-        _cmbNozzleType.SelectedIndexChanged += OnNozzleTypeFilterChanged;
-        _nudCalcSpeed.ValueChanged += (_, _) => RecalcRate();
-        _nudTargetRate.ValueChanged += (_, _) => RecalcRate();
-        _nudCalcSwath.ValueChanged += (_, _) => RecalcRate();
-        _nudCalcNozzlesPerBoom.ValueChanged += (_, _) => RecalcRate();
-        _nudFlowRate.ValueChanged += (_, _) => RecalcRate();
-
-        tab.Controls.Add(p);
-        return tab;
-    }
-
-    /// <summary>Filter nozzle dropdown by type (slit, injector, or all).</summary>
-    private void OnNozzleTypeFilterChanged(object? sender, EventArgs e)
-    {
-        int filterIdx = _cmbNozzleType.SelectedIndex;
-
-        _cmbNozzle.Items.Clear();
-        var filtered = filterIdx switch
-        {
-            1 => _catalog.Nozzles.Where(n => n.Type == NozzleType.Slit),
-            2 => _catalog.Nozzles.Where(n => n.Type == NozzleType.Injector),
-            _ => _catalog.Nozzles.AsEnumerable(),
-        };
-        foreach (var n in filtered)
-            _cmbNozzle.Items.Add(n.ToString());
-
-        if (_cmbNozzle.Items.Count > 0) _cmbNozzle.SelectedIndex = 0;
-    }
-
-    /// <summary>When a nozzle is selected from dropdown, auto-fill spec fields.</summary>
-    private void OnNozzleSelectionChanged(object? sender, EventArgs e)
-    {
-        // Find selected nozzle in the full catalog by matching the display text
-        string selectedText = _cmbNozzle.SelectedItem?.ToString() ?? "";
-        NozzleDefinition? selected = _catalog.Nozzles
-            .FirstOrDefault(n => n.ToString() == selectedText);
-
-        if (selected == null) return;
-
-        _nudSprayAngle.Value = selected.SprayAngleDegrees;
-        _nudFlowRate.Value = (decimal)selected.FlowRateLPerMinAtRef;
-        _txtNozzleColor.Text = selected.IsoColorCode;
-
-        RecalcRate();
-    }
-
-    /// <summary>
-    /// Inverse calculator: speed + rate → pressure + flow/min + nozzle suggestion.
-    /// This is the main calculation the user asked for.
-    /// </summary>
-    private void RecalcRate()
-    {
-        try
-        {
-            double speed = (double)_nudCalcSpeed.Value;
-            double targetRate = (double)_nudTargetRate.Value;
-            double swath = (double)_nudCalcSwath.Value;
-            int nozzlesPerBoom = (int)_nudCalcNozzlesPerBoom.Value;
-
-            // Build current nozzle from UI fields
-            var nozzle = new NozzleDefinition
-            {
-                Model = _cmbNozzle.Text,
-                FlowRateLPerMinAtRef = (double)_nudFlowRate.Value,
-                ReferencePressureBar = 2.76,
-                SprayAngleDegrees = (int)_nudSprayAngle.Value,
-            };
-
-            // ── Core inverse calculation ──
-            // Required flow per nozzle: Q = Rate × Speed × Swath / (600 × n)
-            double requiredFlowPerNozzle = targetRate * speed * swath
-                / (600.0 * nozzlesPerBoom);
-
-            // Required pressure for this flow rate
-            double requiredPressure = nozzle.GetPressureForFlowRate(requiredFlowPerNozzle);
-
-            // Actual rate at computed pressure (verification)
-            double actualRate = RateCalculator.CalculateRateLPerHa(
-                nozzle, requiredPressure, speed, swath, nozzlesPerBoom);
-
-            // ── Display results ──
-            _lblCalcPressure.Text = $"🔧 Потрібний тиск: {requiredPressure:F2} бар";
-            bool pressureOk = nozzle.IsPressureInRange(requiredPressure);
-            _lblCalcPressure.ForeColor = pressureOk ? AppTheme.Success : AppTheme.Error;
-
-            _lblCalcFlowPerNozzle.Text =
-                $"💧 Вилив на форсунку: {requiredFlowPerNozzle:F2} л/хв";
-            _lblCalcFlowPerNozzle.ForeColor = AppTheme.Accent;
-
-            // Recommended speed at reference pressure (comfortable working point)
-            double flowAtRef = nozzle.FlowRateLPerMinAtRef;
-            double recommendedSpeed = flowAtRef * 600.0 * nozzlesPerBoom
-                / (targetRate * swath);
-
-            _lblCalcRecommendedSpeed.Text =
-                $"🚜 Рекомендована швидкість: {recommendedSpeed:F1} км/год " +
-                $"(при {nozzle.ReferencePressureBar:F1} бар)";
-            bool speedOk = recommendedSpeed >= 2.0 && recommendedSpeed <= 12.0;
-            _lblCalcRecommendedSpeed.ForeColor = speedOk
-                ? AppTheme.Success : AppTheme.Warning;
-
-            _lblCalcActualRate.Text = $"📊 Фактична норма: {actualRate:F1} л/га";
-            _lblCalcActualRate.ForeColor = AppTheme.Accent;
-
-            // ── Nozzle suggestions from catalog ──
-            // Find all nozzles that can work at a comfortable pressure (1-6 bar)
-            var suggestions = new List<string>();
-            foreach (var candidate in _catalog.Nozzles)
-            {
-                double candPressure = candidate.GetPressureForFlowRate(requiredFlowPerNozzle);
-                if (candidate.IsPressureInRange(candPressure))
-                {
-                    double candFlow = candidate.GetFlowRateAtPressure(candPressure);
-                    string typeTag = candidate.Type == NozzleType.Injector ? "інж" : "щіл";
-                    suggestions.Add(
-                        $"  ✅ {candidate.Model} [{typeTag}] → " +
-                        $"{candPressure:F1} бар, {candFlow:F2} л/хв");
-                }
-            }
-
-            _lblCalcNozzleSuggestion.Text = suggestions.Count > 0
-                ? "🔎 Підходящі форсунки:\n" + string.Join("\n", suggestions.Take(5))
-                : "❌ Жодна форсунка з каталогу не підходить!";
-            _lblCalcNozzleSuggestion.ForeColor = suggestions.Count > 0
-                ? AppTheme.Success : AppTheme.Error;
-
-            // ── Warnings ──
-            var msgs = new List<string>();
-            if (!pressureOk)
-                msgs.Add($"⚠ Тиск {requiredPressure:F1} бар поза діапазоном " +
-                    $"({nozzle.MinPressureBar:F1}–{nozzle.MaxPressureBar:F1}) — " +
-                    $"оберіть іншу форсунку зі списку ☝");
-            if (speed < 2) msgs.Add("⚠ Швидкість < 2 км/год — дуже повільно.");
-            if (speed > 10) msgs.Add("⚠ Швидкість > 10 км/год — можливий знос.");
-            if (requiredPressure > 6) msgs.Add("💡 Спробуйте форсунку з більшим виливом (наприклад -04, -05).");
-            if (requiredPressure < 1) msgs.Add("💡 Спробуйте форсунку з меншим виливом (наприклад -01, -02).");
-
-            _lblCalcWarnings.Text = msgs.Count > 0
-                ? string.Join("\n", msgs)
-                : "✅ Параметри в нормі";
-            _lblCalcWarnings.ForeColor = msgs.Count > 0
-                ? AppTheme.Warning : AppTheme.Success;
-        }
-        catch
-        {
-            // Silently ignore calculation errors during editing
-            _lblCalcPressure.Text = "";
-            _lblCalcFlowPerNozzle.Text = "";
-            _lblCalcActualRate.Text = "";
-            _lblCalcNozzleSuggestion.Text = "";
-            _lblCalcWarnings.Text = "";
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════════
     // Tab 2: Booms — with add/remove buttons
     // ════════════════════════════════════════════════════════════════════
     private TabPage BuildTabBooms()
@@ -376,7 +139,7 @@ public class FormMachineProfile : Form
             int nextId = _dgvBooms.Rows.Count;
             _dgvBooms.Rows.Add(
                 nextId + 1, $"Boom {nextId + 1}", nextId,
-                "0,00", "0,00", "0,25", "70", "30", "-1", "-1", "0,00", true);
+                "0,00", "0,00", "0,25", "70", "30", "-1", "-1", true);
             lblCount.Text = $"Штанг: {_dgvBooms.Rows.Count}";
         };
 
@@ -429,7 +192,6 @@ public class FormMachineProfile : Form
                 ToolTipText = "-1 = глобальне значення" },
             new DataGridViewTextBoxColumn { HeaderText = "Деакт.мс", Name = "DeactDelay", Width = 55,
                 ToolTipText = "-1 = глобальне значення" },
-            new DataGridViewTextBoxColumn { HeaderText = "Шланг(м)", Name = "HoseLen", Width = 55 },
             new DataGridViewCheckBoxColumn { HeaderText = "Вкл", Name = "Enabled", Width = 35 },
         });
 
@@ -468,22 +230,14 @@ public class FormMachineProfile : Form
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Tab 4: Speed + GPS
+    // Tab 4: GPS
     // ════════════════════════════════════════════════════════════════════
     private TabPage BuildTabSpeedGps()
     {
-        var tab = new TabPage("🚜 Швидкість / GPS");
+        var tab = new TabPage("📡 GPS");
         var p = MakePanel();
 
-        AddSectionHeader(p, "Швидкісний коридор", ref _row);
-        _nudTargetSpeed = AddNumericRow(p,
-            "Цільова швидкість (км/год):", 1, 20, 0.5m, 5.0m);
-        _nudSpeedTolerance = AddNumericRow(p,
-            "Допуск ± (км/год):", 0.1m, 5, 0.1m, 1.0m);
-
-        AddSectionHeader(p, "GPS / RTK", ref _row);
-        _nudRtkTimeout = AddNumericRow(p,
-            "Таймаут втрати RTK (с):", 0, 30, 0.5m, 2.0m);
+        AddSectionHeader(p, "GPS", ref _row);
         _nudGpsHz = AddNumericRow(p,
             "Частота GPS (Гц):", 1, 20, 1, 10);
 
@@ -515,15 +269,12 @@ public class FormMachineProfile : Form
         _nudAogListenPort = AddNumericRow(p, "Порт прийому:", 1024, 65535, 1, 8888);
         _nudAogSendPort = AddNumericRow(p, "Порт відправки:", 1024, 65535, 1, 9999);
 
-        AddSectionHeader(p, "Метеостанція", ref _row);
-        _txtWeatherPort = AddTextRow(p, "COM-порт (пусто = вимк):");
-
         tab.Controls.Add(p);
         return tab;
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Tab 6: General identity (moved to last — rarely changed)
+    // Tab 6: General identity
     // ════════════════════════════════════════════════════════════════════
     private TabPage BuildTabGeneral()
     {
@@ -533,14 +284,6 @@ public class FormMachineProfile : Form
         AddSectionHeader(p, "Ідентифікація", ref _row);
         _txtProfileName = AddTextRow(p, "Ім'я профілю:");
         _txtNotes = AddTextRow(p, "Нотатки:");
-
-        AddSectionHeader(p, "Рідина та тиск", ref _row);
-        _cmbFluidType = AddComboRow(p, "Тип рідини:",
-            Enum.GetNames(typeof(FluidType)));
-        _nudPressure = AddNumericRow(p, "Робочий тиск (бар):", 0.5m, 10, 0.5m, 3.0m);
-
-        AddSectionHeader(p, "Геометрія", ref _row);
-        _nudAntennaHeight = AddNumericRow(p, "Висота антени (м):", 0.5m, 5, 0.01m, 2.50m);
 
         tab.Controls.Add(p);
         return tab;
@@ -559,10 +302,6 @@ public class FormMachineProfile : Form
         // Tab 6: Identity
         _txtProfileName.Text = _profile.ProfileName;
         _txtNotes.Text = _profile.Notes;
-        _cmbFluidType.SelectedIndex = Math.Clamp(
-            (int)_profile.FluidType, 0, Math.Max(0, _cmbFluidType.Items.Count - 1));
-        _nudPressure.Value       = C((decimal)_profile.OperatingPressureBar, _nudPressure);
-        _nudAntennaHeight.Value  = C((decimal)_profile.AntennaHeightMeters,  _nudAntennaHeight);
 
         // Tab 3: Delays
         _nudActivationDelay.Value   = C((decimal)_profile.SystemActivationDelayMs,  _nudActivationDelay);
@@ -570,10 +309,7 @@ public class FormMachineProfile : Form
         _nudPreActivation.Value     = C((decimal)_profile.PreActivationMeters,       _nudPreActivation);
         _nudPreDeactivation.Value   = C((decimal)_profile.PreDeactivationMeters,     _nudPreDeactivation);
 
-        // Tab 4: Speed
-        _nudTargetSpeed.Value    = C((decimal)_profile.TargetSpeedKmh,              _nudTargetSpeed);
-        _nudSpeedTolerance.Value = C((decimal)_profile.SpeedToleranceKmh,           _nudSpeedTolerance);
-        _nudRtkTimeout.Value     = C((decimal)_profile.RtkLossTimeoutSeconds,        _nudRtkTimeout);
+        // Tab 4: GPS
         _nudGpsHz.Value          = C(_profile.GpsUpdateRateHz,                       _nudGpsHz);
         _nudCogThreshold.Value   = C((decimal)_profile.CogHeadingThresholdDegrees,  _nudCogThreshold);
 
@@ -592,7 +328,6 @@ public class FormMachineProfile : Form
                 bp.DeactivationOverlapPercent.ToString("F0"),
                 bp.ActivationDelayOverrideMs.ToString("F0"),
                 bp.DeactivationDelayOverrideMs.ToString("F0"),
-                bp.HoseLengthMeters.ToString("F2"),
                 bp.Enabled);
         }
 
@@ -602,22 +337,6 @@ public class FormMachineProfile : Form
         _txtAogHost.Text = _profile.Connection.AogHost;
         _nudAogListenPort.Value = C(_profile.Connection.AogUdpListenPort, _nudAogListenPort);
         _nudAogSendPort.Value   = C(_profile.Connection.AogUdpSendPort,   _nudAogSendPort);
-        _txtWeatherPort.Text = _profile.Connection.WeatherComPort;
-
-        // Tab 1: Nozzle — try to match from catalog by model name
-        _nudSprayAngle.Value  = C(_profile.Nozzle.SprayAngleDegrees,          _nudSprayAngle);
-        _nudFlowRate.Value    = C((decimal)_profile.Nozzle.FlowRateLPerMin,   _nudFlowRate);
-        _txtNozzleColor.Text  = _profile.Nozzle.ColorCode;
-        _nudTargetRate.Value  = C((decimal)_profile.TargetRateLPerHa,          _nudTargetRate);
-        _nudCalcSpeed.Value   = C((decimal)_profile.TargetSpeedKmh,            _nudCalcSpeed);
-
-        // Auto-select catalog nozzle if model matches
-        int matchIdx = _catalog.Nozzles
-            .FindIndex(n => n.Model.Equals(
-                _profile.Nozzle.Model, StringComparison.OrdinalIgnoreCase));
-        _cmbNozzle.SelectedIndex = matchIdx >= 0 ? matchIdx : 0;
-
-        RecalcRate();
     }
 
     /// <summary>Collects all form data into _profile. Returns false on validation error.</summary>
@@ -626,9 +345,6 @@ public class FormMachineProfile : Form
         // Tab 6: Identity
         _profile.ProfileName = _txtProfileName.Text;
         _profile.Notes = _txtNotes.Text;
-        _profile.FluidType = (FluidType)_cmbFluidType.SelectedIndex;
-        _profile.OperatingPressureBar = (double)_nudPressure.Value;
-        _profile.AntennaHeightMeters = (double)_nudAntennaHeight.Value;
 
         // Tab 3: Delays
         _profile.SystemActivationDelayMs = (double)_nudActivationDelay.Value;
@@ -636,10 +352,7 @@ public class FormMachineProfile : Form
         _profile.PreActivationMeters = (double)_nudPreActivation.Value;
         _profile.PreDeactivationMeters = (double)_nudPreDeactivation.Value;
 
-        // Tab 4: Speed
-        _profile.TargetSpeedKmh = (double)_nudTargetSpeed.Value;
-        _profile.SpeedToleranceKmh = (double)_nudSpeedTolerance.Value;
-        _profile.RtkLossTimeoutSeconds = (double)_nudRtkTimeout.Value;
+        // Tab 4: GPS
         _profile.GpsUpdateRateHz = (int)_nudGpsHz.Value;
         _profile.CogHeadingThresholdDegrees = (double)_nudCogThreshold.Value;
 
@@ -662,7 +375,6 @@ public class FormMachineProfile : Form
                     DeactivationOverlapPercent = Convert.ToDouble(r.Cells["DeactOverlap"].Value),
                     ActivationDelayOverrideMs = Convert.ToDouble(r.Cells["ActDelay"].Value),
                     DeactivationDelayOverrideMs = Convert.ToDouble(r.Cells["DeactDelay"].Value),
-                    HoseLengthMeters = Convert.ToDouble(r.Cells["HoseLen"].Value),
                     Enabled = Convert.ToBoolean(r.Cells["Enabled"].Value),
                 });
             }
@@ -686,17 +398,6 @@ public class FormMachineProfile : Form
         _profile.Connection.AogHost = _txtAogHost.Text;
         _profile.Connection.AogUdpListenPort = (int)_nudAogListenPort.Value;
         _profile.Connection.AogUdpSendPort = (int)_nudAogSendPort.Value;
-        _profile.Connection.WeatherComPort = _txtWeatherPort.Text;
-
-        // Tab 1: Nozzle
-        int nozzleIdx = _cmbNozzle.SelectedIndex;
-        _profile.Nozzle.Model = nozzleIdx >= 0 && nozzleIdx < _catalog.Nozzles.Count
-            ? _catalog.Nozzles[nozzleIdx].Model
-            : _cmbNozzle.Text;
-        _profile.Nozzle.SprayAngleDegrees = (int)_nudSprayAngle.Value;
-        _profile.Nozzle.FlowRateLPerMin = (double)_nudFlowRate.Value;
-        _profile.Nozzle.ColorCode = _txtNozzleColor.Text;
-        _profile.TargetRateLPerHa = (double)_nudTargetRate.Value;
 
         _profile.LastModifiedUtc = DateTime.UtcNow;
 
@@ -763,23 +464,13 @@ public class FormMachineProfile : Form
     {
         dst.ProfileName = src.ProfileName;
         dst.Notes = src.Notes;
-        dst.FluidType = src.FluidType;
-        dst.OperatingPressureBar = src.OperatingPressureBar;
-        dst.AntennaHeightMeters = src.AntennaHeightMeters;
-        dst.TrackWidthMeters = src.TrackWidthMeters;
-        dst.FluidTemperatureCelsius = src.FluidTemperatureCelsius;
         dst.SystemActivationDelayMs = src.SystemActivationDelayMs;
         dst.SystemDeactivationDelayMs = src.SystemDeactivationDelayMs;
         dst.PreActivationMeters = src.PreActivationMeters;
         dst.PreDeactivationMeters = src.PreDeactivationMeters;
-        dst.TargetSpeedKmh = src.TargetSpeedKmh;
-        dst.SpeedToleranceKmh = src.SpeedToleranceKmh;
         dst.CogHeadingThresholdDegrees = src.CogHeadingThresholdDegrees;
-        dst.RtkLossTimeoutSeconds = src.RtkLossTimeoutSeconds;
         dst.GpsUpdateRateHz = src.GpsUpdateRateHz;
         dst.Connection = src.Connection;
-        dst.Nozzle = src.Nozzle;
-        dst.TargetRateLPerHa = src.TargetRateLPerHa;
 
         // Deep-copy Booms to prevent source mutation
         dst.Booms = src.Booms.Select(b => new BoomProfile
@@ -794,7 +485,6 @@ public class FormMachineProfile : Form
             DeactivationOverlapPercent = b.DeactivationOverlapPercent,
             ActivationDelayOverrideMs = b.ActivationDelayOverrideMs,
             DeactivationDelayOverrideMs = b.DeactivationDelayOverrideMs,
-            HoseLengthMeters = b.HoseLengthMeters,
             Enabled = b.Enabled,
         }).ToList();
     }

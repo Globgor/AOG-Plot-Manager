@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PlotManager.Avalonia.ViewModels"
+             x:Class="PlotManager.Avalonia.Controls.HardwareRoutingControl"
+             x:DataType="vm:HardwareRoutingViewModel"
+             x:Name="RootControl">
+    <Border Background="#2D2D30" CornerRadius="8" Padding="20"
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            BoxShadow="0 4 20 0 #40000000">
+        <StackPanel Spacing="15" Width="500">
+            <TextBlock Text="Hardware Routing Setup" FontSize="20" FontWeight="Bold" Foreground="White"/>
+            
+            <DockPanel>
+                <TextBlock Text="Profile Name:" VerticalAlignment="Center" Width="100" Foreground="White"/>
+                <TextBox Text="{Binding ProfileName}" />
+            </DockPanel>
+
+            <TextBlock Text="Tanks Setup" FontSize="16" FontWeight="SemiBold" Foreground="LightGray" Margin="0,10,0,0"/>
+
+            <ScrollViewer MaxHeight="300">
+                <ItemsControl ItemsSource="{Binding Tanks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TankViewModel">
+                            <Border BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10" Background="#1E1E1E">
+                                <StackPanel Spacing="5">
+                                    <DockPanel>
+                                        <TextBlock Text="Tank Name:" Width="90" Foreground="Gray" VerticalAlignment="Center"/>
+                                        <TextBox Text="{Binding Name}" />
+                                    </DockPanel>
+                                    <DockPanel>
+                                        <TextBlock Text="Relays (1-14):" Width="90" Foreground="Gray" VerticalAlignment="Center"/>
+                                        <TextBox Text="{Binding ValvesString}" Watermark="e.g. 1, 2, 3" />
+                                    </DockPanel>
+                                    <DockPanel>
+                                        <TextBlock Text="Product:" Width="90" Foreground="Gray" VerticalAlignment="Center"/>
+                                        <ComboBox ItemsSource="{ReflectionBinding $parent[UserControl].DataContext.AvailableProducts}"
+                                                  SelectedItem="{Binding SelectedProduct}"
+                                                  DisplayMemberBinding="{ReflectionBinding Name}"
+                                                  HorizontalAlignment="Stretch"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <Button Content="+ Add Tank" Command="{Binding AddTankCommand}" HorizontalAlignment="Left" Background="#007ACC" Foreground="White" />
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,15,0,0">
+                <Button Content="Cancel" Command="{Binding CancelCommand}" />
+                <Button Content="Save Routing" Command="{Binding SaveAndCloseCommand}" Background="#007ACC" Foreground="White" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

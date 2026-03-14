@@ -17,7 +17,6 @@ public class MachineProfileTests
 
         Assert.Equal(10, profile.Booms.Count);
         Assert.Equal("Стандартний профіль", profile.ProfileName);
-        Assert.Equal(FluidType.Water, profile.FluidType);
     }
 
     [Fact]
@@ -27,34 +26,18 @@ public class MachineProfileTests
         {
             ProfileName = "Adjuvant Profile",
             Notes = "Calibrated with oil adjuvant",
-            FluidType = FluidType.OilAdjuvant,
-            AntennaHeightMeters = 2.8,
             SystemActivationDelayMs = 400,
             SystemDeactivationDelayMs = 200,
             PreActivationMeters = 0.6,
             PreDeactivationMeters = 0.3,
-            OperatingPressureBar = 4.0,
             CogHeadingThresholdDegrees = 5.0,
-            RtkLossTimeoutSeconds = 3.0,
             GpsUpdateRateHz = 5,
-            TargetSpeedKmh = 6.0,
-            SpeedToleranceKmh = 1.5,
-            TargetRateLPerHa = 250,
-            Nozzle = new NozzleSpec
-            {
-                Model = "TeeJet XR 110-03",
-                SprayAngleDegrees = 110,
-                FlowRateLPerMin = 1.18,
-                ColorCode = "Blue",
-            },
             Connection = new ConnectionSettings
             {
                 TeensyComPort = "COM5",
                 TeensyBaudRate = 230400,
                 AogHost = "192.168.1.100",
-                AogUdpListenPort = 8888,
                 AogUdpSendPort = 8889,
-                WeatherComPort = "COM7",
             },
             Booms = new List<BoomProfile>
             {
@@ -64,7 +47,7 @@ public class MachineProfileTests
                     YOffsetMeters = -0.25, SprayWidthMeters = 0.30,
                     ActivationOverlapPercent = 80, DeactivationOverlapPercent = 20,
                     ActivationDelayOverrideMs = 350, DeactivationDelayOverrideMs = 180,
-                    HoseLengthMeters = 1.2, Enabled = true,
+                    Enabled = true,
                 },
                 new BoomProfile
                 {
@@ -81,51 +64,28 @@ public class MachineProfileTests
 
         // Identity
         Assert.Equal("Adjuvant Profile", r.ProfileName);
-        Assert.Equal(FluidType.OilAdjuvant, r.FluidType);
-        Assert.Equal(2.8, r.AntennaHeightMeters);
 
         // Hydraulics
         Assert.Equal(400, r.SystemActivationDelayMs);
         Assert.Equal(200, r.SystemDeactivationDelayMs);
-        Assert.Equal(4.0, r.OperatingPressureBar);
 
         // Spatial
         Assert.Equal(0.6, r.PreActivationMeters);
         Assert.Equal(5.0, r.CogHeadingThresholdDegrees);
-        Assert.Equal(3.0, r.RtkLossTimeoutSeconds);
         Assert.Equal(5, r.GpsUpdateRateHz);
-
-        // Speed
-        Assert.Equal(6.0, r.TargetSpeedKmh);
-        Assert.Equal(250, r.TargetRateLPerHa);
-
-        // Nozzle
-        Assert.Equal("TeeJet XR 110-03", r.Nozzle.Model);
-        Assert.Equal(110, r.Nozzle.SprayAngleDegrees);
-        Assert.Equal("Blue", r.Nozzle.ColorCode);
 
         // Connections
         Assert.Equal("COM5", r.Connection.TeensyComPort);
         Assert.Equal(230400, r.Connection.TeensyBaudRate);
         Assert.Equal("192.168.1.100", r.Connection.AogHost);
-        Assert.Equal("COM7", r.Connection.WeatherComPort);
 
         // Booms
         Assert.Equal(2, r.Booms.Count);
         Assert.Equal(350, r.Booms[0].ActivationDelayOverrideMs);
-        Assert.Equal(1.2, r.Booms[0].HoseLengthMeters);
         Assert.False(r.Booms[1].Enabled);
         Assert.Equal(-1, r.Booms[1].ActivationDelayOverrideMs);
     }
 
-    [Fact]
-    public void FluidType_SerializedAsString()
-    {
-        var profile = new MachineProfile { FluidType = FluidType.OilAdjuvant };
-        string json = profile.ToJson();
-
-        Assert.Contains("oilAdjuvant", json);
-    }
 
     [Fact]
     public void SaveAndLoad_FileRoundTrip()
@@ -216,21 +176,9 @@ public class MachineProfileTests
     }
 
     [Fact]
-    public void ApplyToSectionController_SetsSpeedLimits()
+    public void ApplyToSectionController_NotApplicable()
     {
-        var controller = new SectionController();
-        var profile = new MachineProfile
-        {
-            TargetSpeedKmh = 6.0,
-            SpeedToleranceKmh = 1.2,
-        };
-
-        profile.ApplyToSectionController(controller);
-
-        Assert.Equal(6.0, controller.TargetSpeedKmh);
-        Assert.Equal(0.2, controller.SpeedToleranceFraction, 3);
-        Assert.Equal(4.8, controller.MinSpeedKmh, 1);
-        Assert.Equal(7.2, controller.MaxSpeedKmh, 1);
+        // This test was removed because MachineProfile no longer sets TargetSpeedKmh or RtkLossTimeoutSeconds on the SectionController.
     }
 
     [Fact]
@@ -254,11 +202,7 @@ public class MachineProfileTests
         var profile = new MachineProfile();
 
         Assert.Equal(3.0, profile.CogHeadingThresholdDegrees);
-        Assert.Equal(2.0, profile.RtkLossTimeoutSeconds);
         Assert.Equal(10, profile.GpsUpdateRateHz);
-        Assert.Equal(3.0, profile.OperatingPressureBar);
-        Assert.Equal(2.5, profile.AntennaHeightMeters);
-        Assert.Equal(200, profile.TargetRateLPerHa);
         Assert.Equal(string.Empty, profile.Connection.TeensyComPort); // F1: no hardcoded default
         Assert.Equal(115200, profile.Connection.TeensyBaudRate);
     }

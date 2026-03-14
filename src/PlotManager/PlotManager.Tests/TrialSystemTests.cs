@@ -403,9 +403,6 @@ public class TrialSystemTests
 
         MachineProfile profile = trial.ToMachineProfile();
 
-        Assert.Equal(3.5, profile.TargetSpeedKmh);
-        Assert.Equal(3.0, profile.OperatingPressureBar);
-        Assert.Equal(200, profile.TargetRateLPerHa);
         Assert.Equal(2, profile.Booms.Count);
         Assert.StartsWith("Auto:", profile.ProfileName);
     }
@@ -468,7 +465,7 @@ public class TrialSystemTests
             SwathWidthMeters = 2.8,
             Products = new()
             {
-                new Product { Name = "Herbicide", RateLPerHa = 300, FluidType = FluidType.WaterSolution },
+                new Product { Name = "Herbicide", RateLPerHa = 300 },
             },
             ProductToChannels = new() { ["Herbicide"] = new() { 0, 1 } },
             PlotAssignments = new() { ["R1C1"] = "Herbicide" },
@@ -483,7 +480,6 @@ public class TrialSystemTests
         Assert.Equal(2.8, restored.SwathWidthMeters);
         Assert.Single(restored.Products);
         Assert.Equal(300, restored.Products[0].RateLPerHa);
-        Assert.Equal(FluidType.WaterSolution, restored.Products[0].FluidType);
         Assert.Equal(4.2, restored.RecommendedSpeedKmh);
     }
 

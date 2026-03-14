@@ -27,11 +27,14 @@ public sealed class FieldPlacementPanel : UserControl
     private PlotGrid? _logicalGrid;
     private TrialMap? _logicalTrialMap;
 
+    /// <summary>The final physically placed trial grid.</summary>
+    public PlotGrid? PlacedGrid { get; private set; }
+
     /// <summary>The final physically placed trial map.</summary>
     public TrialMap? PlacedTrialMap { get; private set; }
 
     /// <summary>Whether coordinates have been successfully applied.</summary>
-    public bool IsValid => PlacedTrialMap != null;
+    public bool IsValid => PlacedTrialMap != null && PlacedGrid != null;
 
     /// <summary>Fires when physical placement changes.</summary>
     public event EventHandler? PlacementChanged;
@@ -44,11 +47,11 @@ public sealed class FieldPlacementPanel : UserControl
     public void SetRestoredGrid(PlotGrid grid)
     {
         _logicalGrid = grid;
+        PlacedGrid = grid;
         // If there is an existing logicalTrialMap, use it; otherwise create a minimal placeholder.
         PlacedTrialMap = _logicalTrialMap ?? new PlotManager.Core.Models.TrialMap
         {
             TrialName = "Restored",
-            Grid      = grid,
         };
         PlacementChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -162,10 +165,10 @@ public sealed class FieldPlacementPanel : UserControl
     /// <summary>
     /// Loads the logical trial map generated in Step 2.
     /// </summary>
-    public void SetLogicalTrialMap(TrialMap? logicalTrialMap)
+    public void SetLogicalTrialMap(PlotGrid? logicalGrid, TrialMap? logicalTrialMap)
     {
         _logicalTrialMap = logicalTrialMap;
-        _logicalGrid = logicalTrialMap?.Grid;
+        _logicalGrid = logicalGrid;
         
         // Reset state
         PlacedTrialMap = null;
@@ -202,15 +205,15 @@ public sealed class FieldPlacementPanel : UserControl
 
             var physicalGrid = _gridGenerator.Generate(parameters);
 
-            // 2. Clone the logical TrialMap, replacing only the Grid property with the new physical one
+            // 2. Clone the logical TrialMap
             // We use standard dictionary to copy the plot assignments
             var newAssignments = new Dictionary<string, string>(_logicalTrialMap.PlotAssignments);
             
+            PlacedGrid = physicalGrid;
             PlacedTrialMap = new TrialMap 
             { 
                 TrialName = _logicalTrialMap.TrialName,
-                PlotAssignments = newAssignments,
-                Grid = physicalGrid 
+                PlotAssignments = newAssignments
             };
 
             _lblStatus.Text =

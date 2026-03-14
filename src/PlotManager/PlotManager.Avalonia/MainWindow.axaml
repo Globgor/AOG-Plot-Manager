@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:PlotManager.Avalonia.Controls"
+        xmlns:vm="using:PlotManager.Avalonia.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="PlotManager.Avalonia.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="AOG Plot Manager V2">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_Connections">
+                <MenuItem Header="GPS Source">
+                    <MenuItem Header="AgOpenGPS (UDP)" Command="{Binding SetGpsProviderCommand}" CommandParameter="AOG" />
+                    <MenuItem Header="Simulation" Command="{Binding SetGpsProviderCommand}" CommandParameter="SIM" />
+                </MenuItem>
+                <MenuItem Header="Machine Control">
+                    <MenuItem Header="Teensy (Serial)" Command="{Binding SetMachineProviderCommand}" CommandParameter="TEENSY" />
+                    <MenuItem Header="Simulation" Command="{Binding SetMachineProviderCommand}" CommandParameter="SIM" />
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Routing">
+                <MenuItem Header="Configure Hardware Profile..." Command="{Binding ShowHardwareRoutingCommand}" />
+            </MenuItem>
+        </Menu>
+
+        <Grid>
+            <controls:PlotMapControl DataContext="{Binding MapViewModel}" />
+            
+            <!-- Speedometer floating overlay at bottom center -->
+            <controls:SpeedometerControl DataContext="{Binding SpeedometerViewModel}" 
+                                         VerticalAlignment="Bottom" 
+                                         HorizontalAlignment="Center" 
+                                         Margin="0,0,0,30"
+                                         Width="300" />
+                                         
+            <!-- Hardware Routing Setup Modal -->
+            <controls:HardwareRoutingControl DataContext="{Binding RoutingViewModel}"
+                                             IsVisible="{Binding $parent[Window].DataContext.IsShowingRouting}"
+                                             ZIndex="10" />
+        </Grid>
+    </DockPanel>
+</Window>

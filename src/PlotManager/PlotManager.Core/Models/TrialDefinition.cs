@@ -190,17 +190,6 @@ public class TrialDefinition
         {
             ProfileName = $"Auto: {TrialName}",
             Notes = $"Auto-generated from trial '{TrialName}' at {DateTime.UtcNow:yyyy-MM-dd HH:mm}",
-            TargetSpeedKmh = RecommendedSpeedKmh > 0 ? RecommendedSpeedKmh : 5.0,
-            OperatingPressureBar = RecommendedPressureBar > 0 ? RecommendedPressureBar : 3.0,
-            TargetRateLPerHa = CalculatedRateLPerHa > 0 ? CalculatedRateLPerHa : 200,
-            Nozzle = new NozzleSpec
-            {
-                Model = ActiveNozzle.Model,
-                SprayAngleDegrees = ActiveNozzle.SprayAngleDegrees,
-                FlowRateLPerMin = ActiveNozzle.GetFlowRateAtPressure(
-                    RecommendedPressureBar > 0 ? RecommendedPressureBar : ActiveNozzle.ReferencePressureBar),
-                ColorCode = ActiveNozzle.IsoColorCode,
-            },
             Booms = new List<BoomProfile>(),
         };
 

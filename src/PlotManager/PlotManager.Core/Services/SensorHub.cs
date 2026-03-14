@@ -117,17 +117,9 @@ public class SensorHub : IDisposable
     /// </summary>
     public void Configure(MachineProfile profile)
     {
-        AirPressureVoltageOffset = profile.AirPressureVoltageOffset;
-        AirPressureVoltageMultiplier = profile.AirPressureVoltageMultiplier;
-
-        // R5 FIX: Reject invalid calibration that would cause divide-by-zero
-        if (profile.FlowMeterPulsesPerLiter <= 0)
-            throw new ArgumentException(
-                $"FlowMeterPulsesPerLiter must be positive, got {profile.FlowMeterPulsesPerLiter}",
-                nameof(profile));
-        FlowMeterPulsesPerLiter = profile.FlowMeterPulsesPerLiter;
-
-        ListenPort = profile.SensorUdpPort;
+        // Settings are now independent of MachineProfile. SensorHub uses standard defaults
+        // or could be configured via a separate SensorSettings object if needed.
+        
         _logger?.Info("SensorHub", $"Configured: port={ListenPort}, pulsesPerL={FlowMeterPulsesPerLiter}");
     }
 

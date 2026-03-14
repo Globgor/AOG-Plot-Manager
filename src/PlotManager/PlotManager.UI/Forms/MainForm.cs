@@ -110,9 +110,9 @@ public partial class MainForm : Form
         _designStep = new TrialDesignPanel();
         _designStep.DesignChanged += (_, _) =>
         {
-            if (_designStep.CurrentTrialMap != null)
+            if (_designStep.CurrentTrialMap != null && _designStep.CurrentGrid != null)
             {
-                _placementStep.SetLogicalTrialMap(_designStep.CurrentTrialMap);
+                _placementStep.SetLogicalTrialMap(_designStep.CurrentGrid, _designStep.CurrentTrialMap);
             }
             UpdateNavState();
         };
@@ -280,10 +280,9 @@ public partial class MainForm : Form
         }
 
         _machineProfile = _profileStep.Profile;
-        // PlacedTrialMap contains both the physical grid and the plot assignments
-        var placedMap = _placementStep.PlacedTrialMap;
-        var currentGrid = placedMap?.Grid;
-        var currentTrialMap = placedMap;
+        // PlacedTrialMap contains the plot assignments, PlacedGrid contains the physical grid
+        var currentGrid = _placementStep.PlacedGrid;
+        var currentTrialMap = _placementStep.PlacedTrialMap;
         var currentRouting = _routingStep.CurrentRouting;
 
         // Lazy-init Core services
@@ -314,7 +313,6 @@ public partial class MainForm : Form
                 var delayProvider = _machineProfile.CreateBoomDelayProvider();
                 _plotController.SetHardwareSetup(hwSetup, delayProvider);
                 _machineProfile.ApplyToSpatialEngine(_spatialEngine);
-                _machineProfile.ApplyToSectionController(_sectionController);
             }
         }
 
