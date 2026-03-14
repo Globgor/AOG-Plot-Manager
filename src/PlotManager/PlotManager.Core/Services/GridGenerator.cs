@@ -103,10 +103,15 @@ public class GridGenerator
         double cosLat = Math.Cos(origin.Latitude * Math.PI / 180.0);
         double lonOffset = rotatedDx / (111320.0 * Math.Max(cosLat, 0.01));
 
-        return new GeoPoint(
-            origin.Latitude + latOffset,
-            origin.Longitude + lonOffset
-        );
+        double newLat = origin.Latitude + latOffset;
+        double newLon = origin.Longitude + lonOffset;
+
+        // Longitude wrapping (normalize to [-180, 180])
+        newLon = (newLon + 180.0) % 360.0;
+        if (newLon < 0) newLon += 360.0;
+        newLon -= 180.0;
+
+        return new GeoPoint(newLat, newLon);
     }
 
     private static void ValidateParams(GridParams p)

@@ -28,7 +28,8 @@ public class HardwareRouter
 
     public void ApplyProduct(Product? product)
     {
-        if (!_machineControlProvider.IsConnected) return;
+        if (!_machineControlProvider.IsConnected) 
+            throw new InvalidOperationException("Cannot apply product: Machine control provider is not connected.");
 
         if (product == null)
         {

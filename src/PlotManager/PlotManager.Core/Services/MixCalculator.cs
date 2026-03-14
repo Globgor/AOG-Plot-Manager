@@ -48,6 +48,10 @@ public class MixCalculator
         double nozzleFlowLmin, 
         double boomWidthMeters)
     {
+        if (machineSpeedKmh <= 0) throw new ArgumentOutOfRangeException(nameof(machineSpeedKmh), "Speed must be strictly positive to calculate a rate.");
+        if (boomWidthMeters <= 0) throw new ArgumentOutOfRangeException(nameof(boomWidthMeters), "Boom width must be strictly positive.");
+        if (nozzleFlowLmin < 0) throw new ArgumentOutOfRangeException(nameof(nozzleFlowLmin), "Nozzle flow cannot be negative.");
+
         // 1. Calculate actual volume rate (L/ha) forced by physics
         // Rate = (Flow * 600) / (Speed * Width)
         double actualVolumeRateLha = (nozzleFlowLmin * 600) / (machineSpeedKmh * boomWidthMeters);
