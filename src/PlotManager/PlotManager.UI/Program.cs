@@ -1,14 +1,16 @@
+using Avalonia;
+
 namespace PlotManager.UI;
 
 static class Program
 {
-    /// <summary>
-    /// The main entry point for the application.
-    /// </summary>
+    // Avalonia configuration, do not edit
     [STAThread]
-    static void Main()
-    {
-        ApplicationConfiguration.Initialize();
-        Application.Run(new Forms.MainForm());
-    }
+    public static void Main(string[] args) =>
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+    public static AppBuilder BuildAvaloniaApp() =>
+        AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .UseSkia();
 }

@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PlotManager.UI.Views.WelcomePanel"
+             Background="{StaticResource BgPrimaryBrush}">
+
+    <Grid RowDefinitions="*,Auto,*">
+
+        <!-- Center content -->
+        <StackPanel Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    Spacing="12">
+
+            <!-- App icon + glow (Avalonia Skia radial gradient) -->
+            <Border Width="120" Height="120"
+                    HorizontalAlignment="Center">
+                <Border.Background>
+                    <SolidColorBrush Color="#284287F5" />
+                </Border.Background>
+                <TextBlock Text="🚜"
+                           FontSize="52"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Title -->
+            <TextBlock Text="AOG Plot Manager"
+                       FontSize="32"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       HorizontalAlignment="Center" />
+
+            <!-- Version -->
+            <TextBlock Text="v0.2.0 — Avalonia Edition"
+                       FontSize="12"
+                       Foreground="{StaticResource TextDimBrush}"
+                       HorizontalAlignment="Center" />
+
+            <!-- Subtitle -->
+            <TextBlock Text="Автоматизація польових дослідів з AgOpenGPS"
+                       FontSize="13"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       HorizontalAlignment="Center" />
+
+            <Separator Margin="0,8" />
+
+            <!-- Action buttons -->
+            <Button x:Name="BtnNew"
+                    Content="🆕  Новий опит"
+                    Classes="accent"
+                    Width="240" Height="48"
+                    FontSize="14"
+                    HorizontalAlignment="Center"
+                    Click="OnNew" />
+
+            <Button x:Name="BtnLoad"
+                    Content="📂  Завантажити профіль"
+                    Classes="secondary"
+                    Width="240" Height="44"
+                    HorizontalAlignment="Center"
+                    Click="OnLoad" />
+
+            <Button x:Name="BtnResume"
+                    Content="🔄  Продовжити сесію"
+                    Classes="secondary"
+                    Width="240" Height="44"
+                    HorizontalAlignment="Center"
+                    IsEnabled="False"
+                    Click="OnResume" />
+
+            <TextBlock x:Name="LastSessionLabel"
+                       Text="Немає збережених сесій"
+                       FontSize="10"
+                       Foreground="{StaticResource TextDimBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,-4,0,0" />
+        </StackPanel>
+    </Grid>
+
+</UserControl>
