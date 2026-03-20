@@ -1,0 +1,63 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PlotManager.UI.Views.WeatherSnapshotWindow"
+        Title="Pre-Trial Weather Check"
+        Width="420" Height="420" MinWidth="400" MinHeight="380"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#1E1E23">
+
+    <StackPanel Margin="16" Spacing="16">
+        <TextBlock Text="🌤 Record weather conditions before starting the trial."
+                   FontStyle="Italic" Foreground="#888888" />
+
+        <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto"
+              Margin="0,10,0,0">
+            <!-- Temperature -->
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Temperature (°C):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudTemperature" Minimum="-20" Maximum="50" Increment="0.5" Value="20.0" FormatString="F1" Margin="0,0,0,8"/>
+
+            <!-- Humidity -->
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Humidity (%):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudHumidity" Minimum="0" Maximum="100" Increment="5" Value="60" FormatString="F0" Margin="0,0,0,8"/>
+
+            <!-- Wind Speed -->
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Wind Speed (m/s):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+            <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="nudWindSpeed" Minimum="0" Maximum="30" Increment="0.5" Value="1.0" FormatString="F1" Margin="0,0,0,8"/>
+
+            <!-- Wind Direction -->
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Wind Direction:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+            <ComboBox Grid.Row="3" Grid.Column="1" x:Name="cboWindDirection" SelectedIndex="0" HorizontalAlignment="Stretch">
+                <ComboBoxItem>N</ComboBoxItem>
+                <ComboBoxItem>NNE</ComboBoxItem>
+                <ComboBoxItem>NE</ComboBoxItem>
+                <ComboBoxItem>ENE</ComboBoxItem>
+                <ComboBoxItem>E</ComboBoxItem>
+                <ComboBoxItem>ESE</ComboBoxItem>
+                <ComboBoxItem>SE</ComboBoxItem>
+                <ComboBoxItem>SSE</ComboBoxItem>
+                <ComboBoxItem>S</ComboBoxItem>
+                <ComboBoxItem>SSW</ComboBoxItem>
+                <ComboBoxItem>SW</ComboBoxItem>
+                <ComboBoxItem>WSW</ComboBoxItem>
+                <ComboBoxItem>W</ComboBoxItem>
+                <ComboBoxItem>WNW</ComboBoxItem>
+                <ComboBoxItem>NW</ComboBoxItem>
+                <ComboBoxItem>NNW</ComboBoxItem>
+                <ComboBoxItem>Calm</ComboBoxItem>
+            </ComboBox>
+        </Grid>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="Notes (optional):" Foreground="#CCCCCC"/>
+            <TextBox x:Name="txtNotes" Height="60" AcceptsReturn="True" TextWrapping="Wrap" Watermark="e.g. cloudy, dew present, light rain stopped 30 min ago..."/>
+        </StackPanel>
+
+        <TextBlock x:Name="lblWarnings" Foreground="#FF9800" TextWrapping="Wrap" Height="40" FontSize="12"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
+            <Button x:Name="btnCancel" Content="Cancel" IsCancel="True" Click="BtnCancel_Click" Classes="Secondary"/>
+            <Button x:Name="btnStart" Content="✅ Start Trial" IsDefault="True" Click="BtnStart_Click" Classes="Primary"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

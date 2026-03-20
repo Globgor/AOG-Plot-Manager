@@ -17,7 +17,7 @@
     PGN 253 (GPS)  PGN 229 (Sections)
          │           │
 ┌────────▼───────────▼───────────┐
-│     PlotManager.UI (WinForms)  │
+│     PlotManager.UI (Avalonia)  │
 │  ┌──────────────────────────┐  │
 │  │   PlotManager.Core       │  │
 │  │ SpatialEngine             │  │
@@ -287,9 +287,9 @@ cd src/PlotManager
 dotnet build PlotManager.Core
 
 # Тесты
-dotnet test PlotManager.Tests   # 254 тестов
+dotnet test PlotManager.Tests   # 353 тестов
 
-# UI (только Windows — требует Windows Desktop SDK)
+# UI (Кросс-платформа: Windows, Linux, macOS)
 dotnet build PlotManager.UI
 dotnet run --project PlotManager.UI
 ```

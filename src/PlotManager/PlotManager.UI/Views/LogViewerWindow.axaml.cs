@@ -5,6 +5,11 @@ namespace PlotManager.UI.Views;
 
 public partial class LogViewerWindow : Window
 {
+    public LogViewerWindow()
+    {
+        InitializeComponent();
+    }
+
     public LogViewerWindow(string logFilePath)
     {
         InitializeComponent();

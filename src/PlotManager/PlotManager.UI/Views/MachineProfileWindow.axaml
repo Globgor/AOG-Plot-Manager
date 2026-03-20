@@ -1,8 +1,241 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PlotManager.UI.Views.MachineProfileWindow"
-        Title="MachineProfileWindow"
-        Width="1000" Height="700"
-        Background="{StaticResource BgPrimaryBrush}">
-    <TextBlock Text="MachineProfileWindow — TODO" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        Title="⚙ Machine Profile — Профіль Обладнання"
+        Width="900" Height="800" MinWidth="800" MinHeight="700"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E23">
+
+    <Grid RowDefinitions="*,Auto">
+        <!-- 6 Tabs -->
+        <TabControl Grid.Row="0" Margin="0" Padding="0">
+            <!-- TAB 1: General -->
+            <TabItem Header="📋 Профіль">
+                <ScrollViewer>
+                    <StackPanel Margin="16" Spacing="16">
+                        <TextBlock Text="Ідентифікація" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Ім'я профілю:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtProfileName"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Нотатки:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtNotes" AcceptsReturn="True" Height="60"/>
+                        </Grid>
+
+                        <TextBlock Text="Рідина та тиск" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Тип рідини:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbFluidType" HorizontalAlignment="Stretch">
+                                <ComboBoxItem>Water</ComboBoxItem>
+                                <ComboBoxItem>UAN28</ComboBoxItem>
+                                <ComboBoxItem>UAN32</ComboBoxItem>
+                            </ComboBox>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Робочий тиск (бар):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudPressure" Minimum="0.5" Maximum="10" Increment="0.5" FormatString="F1"/>
+                        </Grid>
+
+                        <TextBlock Text="Геометрія" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Висота антени (м):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudAntennaHeight" Minimum="0.5" Maximum="5" Increment="0.01" FormatString="F2"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 2: Nozzle Calculator -->
+            <TabItem Header="💧 Форсунка">
+                <ScrollViewer>
+                    <StackPanel Margin="16" Spacing="16">
+                        <TextBlock Text="📝 Що потрібно? (задайте параметри)" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
+                        <TextBlock Text="Задайте бажану швидкість та норму внесення — калькулятор підкаже тиск та яку форсунку поставити." Foreground="#888888" TextWrapping="Wrap" FontStyle="Italic"/>
+                        
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="🚜 Швидкість (км/год):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudCalcSpeed" Minimum="1" Maximum="20" Increment="0.5" Value="6.0" FormatString="F1"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="💧 Норма внесення (л/га):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudTargetRate" Minimum="10" Maximum="1000" Increment="10" Value="200" FormatString="F0"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="📏 Ширина захвату (м):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="nudCalcSwath" Minimum="0.1" Maximum="50" Increment="0.01" Value="2.80" FormatString="F2"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="🔢 Форсунок на штангу:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="3" Grid.Column="1" x:Name="nudCalcNozzlesPerBoom" Minimum="1" Maximum="100" Increment="1" Value="1"/>
+                        </Grid>
+
+                        <TextBlock Text="🔍 Тип форсунки" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Тип:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbNozzleType" HorizontalAlignment="Stretch" SelectedIndex="0">
+                                <ComboBoxItem>Всі</ComboBoxItem>
+                                <ComboBoxItem>Щілинні (Slit)</ComboBoxItem>
+                                <ComboBoxItem>Інжекторні (Injector)</ComboBoxItem>
+                            </ComboBox>
+                        </Grid>
+
+                        <TextBlock Text="📦 Обрана форсунка" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Форсунка:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbNozzle" HorizontalAlignment="Stretch"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Кут розпилу (°):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudSprayAngle" IsEnabled="False" MinHeight="26"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Вилив (л/хв) [з каталогу]:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="nudFlowRate" IsEnabled="False" MinHeight="26"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Колір (ISO):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" x:Name="txtNozzleColor" IsReadOnly="True" BorderThickness="0"/>
+                        </Grid>
+
+                        <TextBlock Text="📊 Результат розрахунку" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
+                        <StackPanel Spacing="6">
+                            <TextBlock x:Name="lblCalcPressure" FontSize="14" FontWeight="Bold"/>
+                            <TextBlock x:Name="lblCalcFlowPerNozzle" FontSize="14" Foreground="#00BCD4"/>
+                            <TextBlock x:Name="lblCalcRecommendedSpeed" FontSize="14"/>
+                            <TextBlock x:Name="lblCalcActualRate" FontSize="14" Foreground="#00BCD4"/>
+                            <TextBlock x:Name="lblCalcNozzleSuggestion" FontSize="14" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="lblCalcWarnings" FontSize="14" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 3: Booms -->
+            <TabItem Header="🔧 Штанги">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" Background="#282830" Padding="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="➕ Додати штангу" Width="160" Classes="Success" Click="BtnAddBoom_Click"/>
+                            <Button Content="➖ Видалити обрані" Width="160" Classes="Danger" Click="BtnRemoveBoom_Click"/>
+                            <TextBlock x:Name="lblBoomsCount" Text="Штанг: 0" VerticalAlignment="Center" Foreground="#AAAAAA" Margin="12,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <DataGrid Grid.Row="1" x:Name="dgvBooms" AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserSortColumns="False"
+                              SelectionMode="Extended" x:CompileBindings="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding BoomIdLabel}" IsReadOnly="True" Width="40"/>
+                            <DataGridTextColumn Header="Ім'я" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Канал" Binding="{Binding ValveChannel}" Width="50"/>
+                            <DataGridTextColumn Header="Y (м)" Binding="{Binding YOffsetMeters}" Width="60"/>
+                            <DataGridTextColumn Header="X (м)" Binding="{Binding XOffsetMeters}" Width="60"/>
+                            <DataGridTextColumn Header="Шир.(м)" Binding="{Binding SprayWidthMeters}" Width="60"/>
+                            <DataGridTextColumn Header="Акт.%" Binding="{Binding ActivationOverlapPercent}" Width="50"/>
+                            <DataGridTextColumn Header="Деакт.%" Binding="{Binding DeactivationOverlapPercent}" Width="60"/>
+                            <DataGridTextColumn Header="Акт.мс" Binding="{Binding ActivationDelayOverrideMs}" Width="60"/>
+                            <DataGridTextColumn Header="Деакт.мс" Binding="{Binding DeactivationDelayOverrideMs}" Width="70"/>
+                            <DataGridTextColumn Header="Шланг(м)" Binding="{Binding HoseLengthMeters}" Width="60"/>
+                            <DataGridCheckBoxColumn Header="Вкл" Binding="{Binding Enabled}" Width="50"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 4: Delays -->
+            <TabItem Header="⏱ Затримки">
+                <ScrollViewer>
+                    <StackPanel Margin="16" Spacing="16">
+                        <TextBlock Text="Гідравлічні затримки (глобальні)" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Затримка активації (мс):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudActivationDelay" Minimum="0" Maximum="2000" Increment="10"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Затримка деактивації (мс):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudDeactivationDelay" Minimum="0" Maximum="2000" Increment="10"/>
+                        </Grid>
+
+                        <TextBlock Text="⚡ Якщо довжини шлангів відрізняються — задайте per-boom перевизначення на вкладці «Штанги» (колонки Акт.мс / Деакт.мс, -1 = використовувати глобальне)." Foreground="#888888" TextWrapping="Wrap" FontStyle="Italic"/>
+
+                        <TextBlock Text="Просторові відступи" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Преактивація (м):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudPreActivation" Minimum="0" Maximum="5" Increment="0.01" FormatString="F2"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Предеактивація (м):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudPreDeactivation" Minimum="0" Maximum="5" Increment="0.01" FormatString="F2"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 5: Speed / GPS -->
+            <TabItem Header="🚜 Швидкість / GPS">
+                <ScrollViewer>
+                    <StackPanel Margin="16" Spacing="16">
+                        <TextBlock Text="Швидкісний коридор" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Цільова швидкість (км/год):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudTargetSpeed" Minimum="1" Maximum="20" Increment="0.5" FormatString="F1"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Допуск ± (км/год):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudSpeedTolerance" Minimum="0.1" Maximum="5" Increment="0.1" FormatString="F1"/>
+                        </Grid>
+
+                        <TextBlock Text="GPS / RTK" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Таймаут втрати RTK (с):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudRtkTimeout" Minimum="0" Maximum="30" Increment="0.5" FormatString="F1"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Частота GPS (Гц):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudGpsHz" Minimum="1" Maximum="20" Increment="1"/>
+                        </Grid>
+
+                        <TextBlock Text="Крабовий хід (COG)" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Поріг Heading/COG (°):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudCogThreshold" Minimum="0.5" Maximum="15" Increment="0.5" FormatString="F1"/>
+                        </Grid>
+                        <TextBlock Text="Якщо різниця Heading − COG > порога → задні штанги проєктуються по COG (компенсація бокового зносу на схилі)." Foreground="#888888" TextWrapping="Wrap" FontStyle="Italic"/>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 6: Connections -->
+            <TabItem Header="🔌 Зв'язок">
+                <ScrollViewer>
+                    <StackPanel Margin="16" Spacing="16">
+                        <TextBlock Text="Teensy" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="COM-порт:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtTeensyPort"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Baud rate:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudBaudRate" Minimum="9600" Maximum="1000000" Increment="100"/>
+                        </Grid>
+
+                        <TextBlock Text="AgOpenGPS (UDP)" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="AOG Host:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtAogHost"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Порт прийому:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudAogListenPort" Minimum="1024" Maximum="65535" Increment="1"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Порт відправки:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="nudAogSendPort" Minimum="1024" Maximum="65535" Increment="1"/>
+                        </Grid>
+
+                        <TextBlock Text="Метеостанція" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="COM-порт (пусто = вимк):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtWeatherPort"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Footer Buttons -->
+        <Border Grid.Row="1" Background="#282830" Padding="12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="📂 З файлу" Width="110" Classes="Secondary" Click="BtnLoadFile_Click"/>
+                <Button Content="💾 У файл" Width="110" Classes="Secondary" Click="BtnSaveFile_Click"/>
+                <Button Content="Скасувати" Width="100" Classes="Secondary" IsCancel="True" Click="BtnCancel_Click"/>
+                <Button Content="✅" Width="120" Classes="Accent" IsDefault="True" Click="BtnOk_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
 </Window>

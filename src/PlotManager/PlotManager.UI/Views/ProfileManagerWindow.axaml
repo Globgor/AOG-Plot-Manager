@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PlotManager.UI.Views.ProfileManagerWindow"
+        Title="📋 Менеджер профілів"
+        Width="650" Height="480" MinWidth="600" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E23">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="📋 Збережені профілі машин"
+                   FontSize="18" FontWeight="SemiBold" Foreground="#EEEEEE"
+                   Padding="12,8,0,0"/>
+
+        <!-- Info -->
+        <TextBlock Grid.Row="1" x:Name="lblInfo" Text="Оберіть профіль зі списку або створіть новий."
+                   Foreground="#AAAAAA" Padding="14,0,0,8"/>
+
+        <!-- Profile List -->
+        <ListBox Grid.Row="2" x:Name="lstProfiles" Background="#232328" Foreground="#E0E0E0"
+                 BorderThickness="0" Margin="12,0,12,0" SelectionChanged="OnSelectionChanged" DoubleTapped="OnLoadSelected">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:CompileBindings="False">
+                    <TextBlock Text="{Binding DisplayName}" Padding="4" FontSize="14" VerticalAlignment="Center"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.Styles>
+                <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="8,4"/>
+                </Style>
+            </ListBox.Styles>
+        </ListBox>
+
+        <!-- Details -->
+        <Border Grid.Row="3" Background="#282830" Margin="12,8,12,0" CornerRadius="4">
+            <TextBlock x:Name="lblDetails" Text="" Foreground="#AAAAAA"
+                       Padding="14,8,14,8" TextWrapping="Wrap" MinHeight="60"/>
+        </Border>
+
+        <!-- Buttons -->
+        <Border Grid.Row="4" Background="#282830" Margin="0,12,0,0" Padding="8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Обрати" Width="130" Classes="Primary" Click="OnLoadSelected"/>
+                <Button Content="Видалити" Width="130" Classes="Danger" Click="OnDeleteSelected"/>
+                <Button Content="Новий" Width="130" Classes="Accent" Click="OnCreateNew"/>
+                <Button Content="Закрити" Width="110" Classes="Secondary" IsCancel="True" Click="OnCancel_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

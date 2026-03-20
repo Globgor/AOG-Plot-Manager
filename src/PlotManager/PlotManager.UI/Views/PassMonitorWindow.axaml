@@ -1,8 +1,74 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctrl="using:PlotManager.UI.Views.Controls"
         x:Class="PlotManager.UI.Views.PassMonitorWindow"
-        Title="PassMonitorWindow"
-        Width="1000" Height="700"
-        Background="{StaticResource BgPrimaryBrush}">
-    <TextBlock Text="PassMonitorWindow — TODO" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        Title="Pass Monitor — AOG Plot Manager"
+        Width="1280" Height="800" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="#19191E" Foreground="#DCDCDC">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <!-- Row 0: Boom Status -->
+        <Border Grid.Row="0" Height="60" Background="#1E1E23" BorderBrush="#333" BorderThickness="0,0,0,1">
+            <ctrl:BoomStatusPanel x:Name="boomPanel"/>
+        </Border>
+
+        <!-- Row 1: Operations Toolbar -->
+        <Border Grid.Row="1" Height="44" Background="#232328" Padding="6,4,6,4" BorderBrush="#333" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
+                <!-- Prime -->
+                <Button Grid.Column="0" x:Name="btnPrime" Content="🚿 Prime" Width="100" Height="32" 
+                        Background="#1E88E5" Foreground="White" FontWeight="Bold" CornerRadius="3"
+                        PointerPressed="OnPrimePressed" PointerReleased="OnPrimeReleased" Margin="0,0,8,0"/>
+                
+                <!-- Clean -->
+                <Button Grid.Column="1" x:Name="btnClean" Content="🧹 Clean" Width="100" Height="32"
+                        Background="#FF9800" Foreground="White" FontWeight="Bold" CornerRadius="3"
+                        Click="OnCleanClick" Margin="0,0,8,0"/>
+
+                <!-- Separator -->
+                <TextBlock Grid.Column="2" Text="|" Foreground="#505050" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                <!-- Trial Toggle -->
+                <Button Grid.Column="3" x:Name="btnTrial" Content="📝 Start Trial" Width="130" Height="32"
+                        Background="#4CAF50" Foreground="White" FontWeight="Bold" CornerRadius="3"
+                        Click="OnTrialToggleClick" Margin="0,0,16,0"/>
+
+                <!-- Trial Status -->
+                <TextBlock Grid.Column="4" x:Name="lblTrialStatus" Text="Trial: idle" Foreground="#969696" VerticalAlignment="Center" FontSize="12"/>
+
+                <!-- Settings -->
+                <Button Grid.Column="5" x:Name="btnSettings" Content="⚙ Settings" Width="100" Height="32"
+                        Background="#42424B" Foreground="White" CornerRadius="3" Click="OnSettingsClick" Margin="0,0,16,0"/>
+
+                <!-- E-STOP -->
+                <Button Grid.Column="6" x:Name="btnEstop" Content="⛔ E-STOP" Width="110" Height="32"
+                        Background="#B71C1C" Foreground="White" FontWeight="Bold" CornerRadius="3"
+                        BorderBrush="#E53935" BorderThickness="1" Click="OnEstopClick"/>
+            </Grid>
+        </Border>
+
+        <!-- Row 2: Main Area (Context + Map + Telemetry) -->
+        <Grid Grid.Row="2" ColumnDefinitions="260,*,280">
+            <!-- Left: Field Context -->
+            <Border Grid.Column="0" Background="#1E1E23" BorderBrush="#333" BorderThickness="0,0,1,0">
+                <ctrl:FieldContextPanel x:Name="fieldContextPanel"/>
+            </Border>
+
+            <!-- Center: Plot Map -->
+            <Grid Grid.Column="1">
+                <ctrl:PlotMapControl x:Name="mapControl"/>
+            </Grid>
+
+            <!-- Right: Telemetry -->
+            <Border Grid.Column="2" Background="#1E1E23" BorderBrush="#333" BorderThickness="1,0,0,0">
+                <ctrl:TelemetryPanel x:Name="telemetryPanel"/>
+            </Border>
+        </Grid>
+
+        <!-- Row 3: Interlock Status Bar -->
+        <Border Grid.Row="3" Height="40" Background="#1E1E23" BorderBrush="#333" BorderThickness="0,1,0,0">
+            <ctrl:InterlockStatusBar x:Name="interlockBar"/>
+        </Border>
+    </Grid>
 </Window>

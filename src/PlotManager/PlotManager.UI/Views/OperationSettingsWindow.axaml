@@ -1,0 +1,69 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PlotManager.UI.Views.OperationSettingsWindow"
+        Title="⚙ Настройки опрыскивания"
+        Width="480" Height="560" MinWidth="440" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#1E1E23">
+
+    <Grid RowDefinitions="*,Auto">
+        <TabControl Grid.Row="0" Margin="0" Padding="0">
+            <!-- SPEED TAB -->
+            <TabItem Header="🏎 Скорость">
+                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto" Margin="16">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Целевая скорость (км/ч):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudTargetSpeed" Minimum="0.5" Maximum="20" Increment="0.5" FormatString="F1"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Допуск скорости (%):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudSpeedTolerance" Minimum="1" Maximum="50" Increment="1" FormatString="F0"/>
+                </Grid>
+            </TabItem>
+
+            <!-- PRIME / CLEAN TAB -->
+            <TabItem Header="🚿 Prime / Clean">
+                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="16">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Макс скорость Prime (км/ч):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudMaxPrimeSpeed" Minimum="0" Maximum="5" Increment="0.1" FormatString="F1"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="─── Pulse Clean ───" FontStyle="Italic" Foreground="#646464" Margin="0,16,0,0"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Pulse ON (мс):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="nudPulseOnMs" Minimum="500" Maximum="10000" Increment="100" FormatString="F0"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Pulse OFF (мс):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="3" Grid.Column="1" x:Name="nudPulseOffMs" Minimum="200" Maximum="5000" Increment="100" FormatString="F0"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Кол-во циклов:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="4" Grid.Column="1" x:Name="nudCycleCount" Minimum="1" Maximum="20" Increment="1" FormatString="F0"/>
+                </Grid>
+            </TabItem>
+
+            <!-- WEATHER TAB -->
+            <TabItem Header="🌤 Автометео">
+                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto" Margin="16">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Порог стоянки (сек):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudWeatherThreshold" Minimum="1" Maximum="120" Increment="1" FormatString="F0"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Мин. скорость «стоп» (км/ч):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudStoppedSpeedKmh" Minimum="0" Maximum="2" Increment="0.1" FormatString="F1"/>
+                </Grid>
+            </TabItem>
+
+            <!-- TRIAL TAB -->
+            <TabItem Header="📝 Trial">
+                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto" Margin="16">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Интервал записи (мс):" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <NumericUpDown Grid.Row="0" Grid.Column="1" x:Name="nudLogIntervalMs" Minimum="100" Maximum="5000" Increment="100" FormatString="F0"/>
+
+                    <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" x:Name="chkLogAllStates"
+                              Content="Логировать все состояния (Alley, OutsideGrid)" Foreground="#CCCCCC"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- APPLY BUTTON -->
+        <Button Grid.Row="1" Content="✅ Применить" x:Name="btnApply" Click="BtnApply_Click" Classes="Primary"
+                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Height="40" Margin="0"/>
+    </Grid>
+</Window>
