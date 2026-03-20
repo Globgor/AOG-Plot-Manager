@@ -10,7 +10,7 @@
     <Styles.Resources>
         <ResourceDictionary>
             <!-- Background palette -->
-            <Color x:Key="BgPrimary">#18191A21</Color>
+            <Color x:Key="BgPrimary">#191A21</Color>
             <Color x:Key="BgSecondary">#20232C</Color>
             <Color x:Key="BgCard">#282C37</Color>
             <Color x:Key="BgInput">#323644</Color>
