@@ -2,5 +2,50 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="PlotManager.UI.Views.Controls.FieldPlacementPanelView"
              Background="{StaticResource BgPrimaryBrush}">
-    <TextBlock Text="FieldPlacementPanelView — TODO" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="40,24,40,24" Spacing="12" MaxWidth="500" HorizontalAlignment="Left">
+            
+            <!-- Header -->
+            <TextBlock Text="Крок 3: Розміщення на Полі (Field Placement)"
+                       FontSize="20" FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+            <TextBlock Text="Задайте географічні координати для старту обприскування.&#10;Схема досліду буде зорієнтована відносно цих координат."
+                       FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="0,0,0,12" TextWrapping="Wrap" />
+
+            <!-- Coordinates -->
+            <TextBlock Text="GPS Координати" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,8,0,0" />
+            
+            <Grid ColumnDefinitions="*,*">
+                <TextBlock Grid.Column="0" Text="Початкова широта (Lat):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                <NumericUpDown x:Name="NumLatitude" Grid.Column="1" Minimum="-90" Maximum="90" Value="50.00000000" Increment="0.000001" FormatString="0.00000000" />
+            </Grid>
+            <Grid ColumnDefinitions="*,*">
+                <TextBlock Grid.Column="0" Text="Початкова довгота (Lon):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                <NumericUpDown x:Name="NumLongitude" Grid.Column="1" Minimum="-180" Maximum="180" Value="30.00000000" Increment="0.000001" FormatString="0.00000000" />
+            </Grid>
+            <Grid ColumnDefinitions="*,*">
+                <TextBlock Grid.Column="0" Text="Курс руху (° Heading):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                <NumericUpDown x:Name="NumHeading" Grid.Column="1" Minimum="0" Maximum="360" Value="0.0" Increment="1.0" FormatString="0.0" />
+            </Grid>
+
+            <!-- Map placeholder -->
+            <Border Background="{StaticResource BgCardBrush}" 
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" 
+                    CornerRadius="4" Height="120" Margin="0,20,0,20">
+                <TextBlock Text="🗺️ Інтерактивна супутникова карта (Leaflet / WebView2)&#10;буде додана у наступних версіях."
+                           FontStyle="Italic" Foreground="{StaticResource TextDimBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+            </Border>
+
+            <!-- Generate button -->
+            <Button x:Name="BtnApply" Content="📍 Прив'язати до Поля" Classes="accent" Height="44" HorizontalAlignment="Stretch" Click="OnApplyCoordinates" />
+
+            <!-- Status label -->
+            <TextBlock x:Name="LblStatus" Text="Очікування координат..." FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+
+        </StackPanel>
+    </ScrollViewer>
+
 </UserControl>

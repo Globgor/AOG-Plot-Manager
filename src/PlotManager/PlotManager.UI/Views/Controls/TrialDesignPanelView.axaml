@@ -1,6 +1,89 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:PlotManager.UI.Views.Controls"
              x:Class="PlotManager.UI.Views.Controls.TrialDesignPanelView"
              Background="{StaticResource BgPrimaryBrush}">
-    <TextBlock Text="TrialDesignPanelView — TODO" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+    <Grid ColumnDefinitions="360,3,*">
+
+        <!-- ── Left side: Input Form ── -->
+        <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20,16,12,16" Spacing="12">
+                
+                <!-- Header -->
+                <TextBlock Text="Крок 2: Дизайн Досліду" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="Задайте логічні розміри та препарати" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8" />
+
+                <!-- Plot Dimensions -->
+                <TextBlock Text="Розміри делянки" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,8,0,0" />
+                <Grid ColumnDefinitions="*,*">
+                    <TextBlock Grid.Column="0" Text="Ширина (м):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <NumericUpDown x:Name="NumPlotWidth" Grid.Column="1" Value="2.80" Minimum="0.01" Maximum="100" Increment="0.1" FormatString="0.00" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*">
+                    <TextBlock Grid.Column="0" Text="Довжина (м):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <NumericUpDown x:Name="NumPlotLength" Grid.Column="1" Value="10.24" Minimum="0.01" Maximum="500" Increment="0.5" FormatString="0.00" />
+                </Grid>
+
+                <!-- Buffers -->
+                <TextBlock Text="Алеї / Буфери" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,8,0,0" />
+                <Grid ColumnDefinitions="*,*">
+                    <TextBlock Grid.Column="0" Text="Бокова (м):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <NumericUpDown x:Name="NumBufferWidth" Grid.Column="1" Value="0.00" Minimum="0" Maximum="10" Increment="0.5" FormatString="0.00" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*">
+                    <TextBlock Grid.Column="0" Text="Торцева (м):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <NumericUpDown x:Name="NumBufferLength" Grid.Column="1" Value="4.00" Minimum="0" Maximum="20" Increment="0.5" FormatString="0.00" />
+                </Grid>
+
+                <!-- Grid size -->
+                <TextBlock Text="Решітка поля" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,8,0,0" />
+                <Grid ColumnDefinitions="*,*">
+                    <TextBlock Grid.Column="0" Text="Рядки (Проходи):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <NumericUpDown x:Name="NumRows" Grid.Column="1" Value="10" Minimum="1" Maximum="100" Increment="1" FormatString="0" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*">
+                    <TextBlock Grid.Column="0" Text="Колонки:" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <NumericUpDown x:Name="NumColumns" Grid.Column="1" Value="20" Minimum="1" Maximum="50" Increment="1" FormatString="0" />
+                </Grid>
+
+                <!-- Randomization Design -->
+                <TextBlock Text="Схема рандомізації" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,8,0,0" />
+                <Grid ColumnDefinitions="*,*">
+                    <TextBlock Grid.Column="0" Text="Тип дизайну:" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <ComboBox x:Name="CmbDesignType" Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="0">
+                        <ComboBoxItem>RCBD (Блоки)</ComboBoxItem>
+                        <ComboBoxItem>CRD (Повний рандом)</ComboBoxItem>
+                        <ComboBoxItem>Latin Square</ComboBoxItem>
+                    </ComboBox>
+                </Grid>
+
+                <TextBlock Text="Препарати (1 на рядок):" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                <TextBox x:Name="TxtTreatments" AcceptsReturn="True" Height="100" TextWrapping="NoWrap" Text="Гербіцид А&#10;Добриво Б&#10;Контроль&#10;Гербіцид С" />
+
+                <!-- Actions -->
+                <Button x:Name="BtnGenerate" Content="🔲 Згенерувати Схему" Classes="accent" HorizontalAlignment="Stretch" Height="44" Margin="0,12,0,0" Click="OnGenerate" />
+                
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" Margin="0,8,0,0">
+                    <Button x:Name="BtnExportExcel" Grid.Row="0" Grid.Column="0" Content="📊 Експорт (Excel)" Classes="success" HorizontalAlignment="Stretch" Margin="0,0,4,4" Click="OnExportExcel" />
+                    <Button x:Name="BtnSaveJson" Grid.Row="0" Grid.Column="1" Content="💾 Зберегти" Classes="secondary" HorizontalAlignment="Stretch" Margin="4,0,0,4" Click="OnSaveJson" />
+                    <Button x:Name="BtnLoadJson" Grid.Row="1" Grid.Column="0" Content="📂 Завантажити" Classes="secondary" HorizontalAlignment="Stretch" Margin="0,4,4,0" Click="OnLoadJson" />
+                    <Button x:Name="BtnClear" Grid.Row="1" Grid.Column="1" Content="📄 Новий Дизайн" Classes="secondary" HorizontalAlignment="Stretch" Margin="4,4,0,0" Click="OnClear" />
+                </Grid>
+
+                <TextBlock x:Name="LblGridInfo" Foreground="{StaticResource AccentGreenBrush}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" />
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ── Splitter ── -->
+        <GridSplitter Grid.Column="1" Background="{StaticResource BorderBrush}" Width="3" ResizeDirection="Columns" />
+
+        <!-- ── Right side: Preview ── -->
+        <Border Grid.Column="2" Background="{StaticResource BgSecondaryBrush}" Padding="8">
+            <controls:PlotGridPreview x:Name="GridPreview" />
+        </Border>
+
+    </Grid>
+
 </UserControl>

@@ -123,7 +123,7 @@ public partial class MainWindow : Window
         _designStep.DesignChanged    += (_, _) =>
         {
             if (_designStep.CurrentTrialMap != null)
-                _placementStep.SetLogicalTrialMap(_designStep.CurrentTrialMap);
+                _placementStep.SetLogicalDesign(_designStep.CurrentGrid, _designStep.CurrentTrialMap);
             UpdateNavState();
         };
         _placementStep.PlacementChanged += (_, _) =>

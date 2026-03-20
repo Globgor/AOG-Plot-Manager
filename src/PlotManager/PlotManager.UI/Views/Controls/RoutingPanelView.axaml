@@ -1,6 +1,45 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:PlotManager.UI.Views.Controls"
+             xmlns:dg="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
              x:Class="PlotManager.UI.Views.Controls.RoutingPanelView"
              Background="{StaticResource BgPrimaryBrush}">
-    <TextBlock Text="RoutingPanelView — TODO" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- ── Header ── -->
+        <Border Grid.Row="0" Background="{StaticResource BgPrimaryBrush}" Padding="20,16,20,8">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Крок 4: Маршрутизація продуктів → Секції штанги"
+                           FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                
+                <TextBlock Text="⚙ ЩО ЦЕ ТАКЕ:&#10;Кожен продукт із Trial Map потрібно призначити конкретній фізичній секції штанги (1–14).&#10;Секція = один каністр/канал клапана на обприскувачі.&#10;&#10;📋 ЯК НАЛАШТУВАТИ:&#10;1. Оберіть номер секції для кожного продукту зі списку&#10;2. Один продукт = одна секція (дублікати заборонені)&#10;3. Натисніть 💾 Зберегти для підтвердження"
+                           FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+
+                <StackPanel Orientation="Horizontal" Spacing="20" Margin="0,12,0,0">
+                    <Button x:Name="BtnSave" Content="💾  Зберегти маршрутизацію" Classes="accent" Width="220" Height="40" Click="OnSaveRouting" IsEnabled="False" />
+                    <TextBlock x:Name="LblStatus" Text="⏳ Спочатку імпортуйте Trial Map (Крок 3)" Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- ── DataGrid ── -->
+        <dg:DataGrid x:Name="GridRouting" Grid.Row="1" AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" HeadersVisibility="Column" SelectionMode="Single">
+            <dg:DataGrid.Columns>
+                <!-- Product Column -->
+                <dg:DataGridTextColumn x:DataType="controls:RoutingRow" Header="Продукт" Binding="{Binding Product}" IsReadOnly="True" Width="2*" />
+                
+                <!-- Section Column -->
+                <dg:DataGridTemplateColumn Header="Секція штанги (1–14)" Width="*">
+                    <dg:DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="controls:RoutingRow">
+                            <ComboBox ItemsSource="{Binding AvailableSections}" SelectedItem="{Binding SelectedSection}" HorizontalAlignment="Stretch" Margin="4" />
+                        </DataTemplate>
+                    </dg:DataGridTemplateColumn.CellTemplate>
+                </dg:DataGridTemplateColumn>
+            </dg:DataGrid.Columns>
+        </dg:DataGrid>
+
+    </Grid>
+
 </UserControl>

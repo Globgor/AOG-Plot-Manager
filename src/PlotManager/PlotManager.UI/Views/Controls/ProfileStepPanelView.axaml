@@ -2,5 +2,70 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="PlotManager.UI.Views.Controls.ProfileStepPanelView"
              Background="{StaticResource BgPrimaryBrush}">
-    <TextBlock Text="ProfileStepPanelView — TODO" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="40,30,40,20">
+
+        <!-- Row 0: Header -->
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
+            <TextBlock Text="Крок 1: Профіль машини"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+            <TextBlock Text="Налаштуйте параметри обприскувача: штанги, форсунки, затримки, з'єднання. Профіль можна зберегти у файл та завантажити пізніше."
+                       FontSize="13"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Row 1: Summary Card -->
+        <Border Grid.Row="1"
+                Background="{StaticResource BgCardBrush}"
+                CornerRadius="8"
+                Padding="16,12"
+                Margin="0,0,0,12">
+            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                
+                <!-- Row 0: Status -->
+                <TextBlock x:Name="LblStatus"
+                           Grid.Row="0" Grid.ColumnSpan="2"
+                           Text="⏳ Профіль не завантажено"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource AccentOrangeBrush}"
+                           Margin="0,0,0,10" />
+
+                <!-- Row 1: Name -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="📋 Назва:" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4" />
+                <TextBlock x:Name="LblProfileName" Grid.Row="1" Grid.Column="1" Text="—" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4" />
+
+                <!-- Row 2: Booms -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="🔧 Штанги:" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4" />
+                <TextBlock x:Name="LblBoomCount" Grid.Row="2" Grid.Column="1" Text="—" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4" />
+
+                <!-- Row 3: Nozzle -->
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="💧 Форсунка:" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4" />
+                <TextBlock x:Name="LblNozzle" Grid.Row="3" Grid.Column="1" Text="—" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4" />
+
+                <!-- Row 4: Speed -->
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="🚜 Швидкість:" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4" />
+                <TextBlock x:Name="LblSpeed" Grid.Row="4" Grid.Column="1" Text="—" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4" />
+
+                <!-- Row 5: Connections -->
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="🔌 З'єднання:" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4" />
+                <TextBlock x:Name="LblConnections" Grid.Row="5" Grid.Column="1" Text="—" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4" />
+
+            </Grid>
+        </Border>
+
+        <!-- Row 2: Spacer (Empty Grid cell expanding through *) -->
+
+        <!-- Row 3: Action Buttons -->
+        <WrapPanel Grid.Row="3" Orientation="Horizontal" ItemHeight="40" Margin="0,20,0,0">
+            <Button x:Name="BtnEdit" Content="✏  Редагувати профіль" Classes="accent" Width="200" Margin="0,0,12,0" Click="OnEditProfile" />
+            <Button x:Name="BtnManager" Content="📋  Менеджер профілів" Classes="secondary" Width="200" Margin="0,0,12,0" Click="OnOpenProfileManager" />
+            <Button x:Name="BtnLoad" Content="📂  З файлу" Classes="secondary" Width="140" Margin="0,0,12,0" Click="OnLoadFromFile" />
+            <Button x:Name="BtnNew" Content="🆕  Новий" Classes="secondary" Width="120" Click="OnNewProfile" />
+        </WrapPanel>
+
+    </Grid>
 </UserControl>
