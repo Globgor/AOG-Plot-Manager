@@ -14,6 +14,7 @@ public partial class MachineProfileWindow : Window
 {
     private readonly MachineProfile _profile;
     private readonly NozzleCatalog _catalog;
+    private double _currentRecommendedSpeed = 0;
 
     public ObservableCollection<BoomProfileWrapper> BoomItems { get; } = new();
 
@@ -95,6 +96,7 @@ public partial class MachineProfileWindow : Window
         nudAogListenPort.Value = _profile.Connection.AogUdpListenPort;
         nudAogSendPort.Value = _profile.Connection.AogUdpSendPort;
         txtWeatherPort.Text = _profile.Connection.WeatherComPort;
+        cmbGpsSource.SelectedIndex = Math.Clamp((int)_profile.Connection.PrimaryGpsSource, 0, 2);
 
         // Setup nozzle catalog now so it selects the right one
         OnNozzleTypeFilterChanged(null, null);
@@ -127,6 +129,9 @@ public partial class MachineProfileWindow : Window
             _profile.Connection.AogUdpListenPort = (int)(nudAogListenPort.Value ?? 8888m);
             _profile.Connection.AogUdpSendPort = (int)(nudAogSendPort.Value ?? 9999m);
             _profile.Connection.WeatherComPort = txtWeatherPort.Text?.Trim() ?? "";
+            
+            int gpsSrcIdx = cmbGpsSource.SelectedIndex;
+            _profile.Connection.PrimaryGpsSource = (GpsSource)Math.Clamp(gpsSrcIdx, 0, 2);
 
             _profile.TargetRateLPerHa = (double)(nudTargetRate.Value ?? 200m);
 
@@ -252,10 +257,14 @@ public partial class MachineProfileWindow : Window
             double flowAtRef = nozzle.FlowRateLPerMinAtRef;
             double recommendedSpeed = flowAtRef * 600.0 * nozzlesPerBoom / (targetRate * swath);
 
+            _currentRecommendedSpeed = recommendedSpeed;
             lblCalcRecommendedSpeed.Text = $"🚜 {recommendedSpeed:F1} км/год";
             lblCalcRefPressure.Text = $"Рекомендовано для створення\nідеального факела ({nozzle.ReferencePressureBar:F1} бар)";
             bool speedOk = recommendedSpeed >= 2.0 && recommendedSpeed <= 12.0;
             lblCalcRecommendedSpeed.Foreground = Avalonia.Media.SolidColorBrush.Parse(speedOk ? "#4CAF50" : "#FF9800");
+
+            if (btnSetTargetSpeed != null)
+                btnSetTargetSpeed.IsVisible = true;
 
             var suggestions = new List<string>();
             foreach (var candidate in _catalog.Nozzles)
@@ -294,6 +303,19 @@ public partial class MachineProfileWindow : Window
             lblCalcRefPressure.Text = "";
             lblCalcNozzleSuggestion.Text = "";
             lblCalcWarnings.Text = "";
+            if (btnSetTargetSpeed != null) btnSetTargetSpeed.IsVisible = false;
+        }
+    }
+
+    private void BtnSetTargetSpeed_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_currentRecommendedSpeed > 0)
+        {
+            // Змінюємо цільову швидкість у вкладці GPS
+            nudTargetSpeed.Value = (decimal)_currentRecommendedSpeed;
+            // Також оновлюємо локальну швидкість калькулятора, щоб користувач бачив,
+            // що тепер необхідний тиск точно дорівнює ідеальному
+            nudCalcSpeed.Value = (decimal)_currentRecommendedSpeed;
         }
     }
 

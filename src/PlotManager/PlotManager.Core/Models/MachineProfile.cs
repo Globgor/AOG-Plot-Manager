@@ -40,6 +40,16 @@ public class NozzleSpec
 }
 
 /// <summary>
+/// Defines the source of spatial coordinates (GPS/RTK).
+/// </summary>
+public enum GpsSource
+{
+    AgOpenGps,
+    ArduPilotNmeaSerial,
+    ArduPilotMavlinkUdp
+}
+
+/// <summary>
 /// Connection settings for hardware communication.
 /// </summary>
 public class ConnectionSettings
@@ -60,6 +70,9 @@ public class ConnectionSettings
 
     /// <summary>AOG host address.</summary>
     public string AogHost { get; set; } = "127.0.0.1";
+
+    /// <summary>Primary source of GPS data.</summary>
+    public GpsSource PrimaryGpsSource { get; set; } = GpsSource.AgOpenGps;
 }
 
 /// <summary>

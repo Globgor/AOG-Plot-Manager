@@ -108,6 +108,7 @@
                                     <TextBlock Text="🏆 ОПТИМАЛЬНА ШВИДКІСТЬ" FontSize="11" Foreground="#6A9A70" FontWeight="Bold" />
                                     <TextBlock x:Name="lblCalcRecommendedSpeed" FontSize="16" FontWeight="Bold"/>
                                     <TextBlock x:Name="lblCalcRefPressure" FontSize="13" Foreground="#81C784" TextWrapping="Wrap"/>
+                                    <Button x:Name="btnSetTargetSpeed" Content="🎯 Встановити як цільову" Classes="Success" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="30" Margin="0,8,0,0" IsVisible="False" Click="BtnSetTargetSpeed_Click"/>
                                 </StackPanel>
                             </Border>
                             
@@ -227,7 +228,17 @@
                             <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="nudBaudRate" Minimum="9600" Maximum="1000000" Increment="100"/>
                         </Grid>
 
-                        <TextBlock Text="AgOpenGPS (UDP)" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <TextBlock Text="Навігація (GPS Джерело)" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="200,*" RowDefinitions="Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Джерело позиції:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbGpsSource" HorizontalAlignment="Stretch">
+                                <ComboBoxItem>AgOpenGPS (UDP 8888)</ComboBoxItem>
+                                <ComboBoxItem>ArduPilot NMEA (Serial) [В розробці]</ComboBoxItem>
+                                <ComboBoxItem>ArduPilot MAVLink (UDP) [В розробці]</ComboBoxItem>
+                            </ComboBox>
+                        </Grid>
+
+                        <TextBlock Text="Налаштування AgOpenGPS / UDP" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE" Margin="0,8,0,0"/>
                         <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto">
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="AOG Host:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
                             <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtAogHost"/>
