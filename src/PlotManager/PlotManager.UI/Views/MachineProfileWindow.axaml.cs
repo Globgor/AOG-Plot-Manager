@@ -12,7 +12,7 @@ namespace PlotManager.UI.Views;
 
 public partial class MachineProfileWindow : Window
 {
-    private readonly MachineProfile _profile;
+    private MachineProfile _profile;
     private readonly NozzleCatalog _catalog;
     private double _currentRecommendedSpeed = 0;
 
@@ -200,7 +200,7 @@ public partial class MachineProfileWindow : Window
         string profTarget = _profile.Nozzle?.Model ?? "";
         for (int i=0; i < cmbNozzle.Items.Count; i++)
         {
-            if (cmbNozzle.Items[i].ToString()?.Contains(profTarget) == true)
+            if (cmbNozzle.Items[i]?.ToString()?.Contains(profTarget) == true)
             {
                 targetIdx = i;
                 break;
@@ -385,13 +385,40 @@ public partial class MachineProfileWindow : Window
 
     private async void BtnLoadFile_Click(object? sender, RoutedEventArgs e)
     {
-        // TODO: Port to proper StorageProvider API
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Завантажити профіль",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Machine Profile") { Patterns = new[] { "*.json" } } }
+        });
+        if (files.Count > 0)
+        {
+            try { 
+                var loaded = MachineProfile.LoadFromFile(files[0].Path.LocalPath); 
+                _profile = loaded;
+                PopulateFromProfile();
+            } catch { }
+        }
     }
 
     private async void BtnSaveFile_Click(object? sender, RoutedEventArgs e)
     {
         if (!TryCollectToProfile()) return;
-        // TODO: Port to proper StorageProvider API
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+        {
+            Title = "Зберегти профіль",
+            DefaultExtension = "json",
+            SuggestedFileName = _profile.ProfileName + ".json",
+            FileTypeChoices = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Machine Profile") { Patterns = new[] { "*.json" } } }
+        });
+        if (file != null)
+        {
+            try { _profile.SaveToFile(file.Path.LocalPath); } catch { }
+        }
     }
 
     // ── Boom Data Wrapper for Avalonia Binding ──

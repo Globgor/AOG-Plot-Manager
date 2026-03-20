@@ -159,7 +159,7 @@ public partial class FieldContextPanel : UserControl
             canvas.Restore();
         }
 
-        private float DrawCard(SKCanvas canvas, float x, float y, float w, string title, Func<SKCanvas, float, float, float, float> drawContent)
+        private float DrawCard(SKCanvas canvas, float x, float y, float w, string title, Func<SKCanvas?, float, float, float, float> drawContent)
         {
             float contentY = y + 24;
             

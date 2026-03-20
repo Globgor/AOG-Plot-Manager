@@ -16,8 +16,6 @@ public partial class PlotGridPreview : UserControl
 {
     private PlotGrid? _grid;
     private TrialMap? _trialMap;
-    // We can support routing for future expansions if needed
-    private HardwareRouting? _routing;
 
     private readonly Dictionary<string, SKColor> _productColorMap = new();
     

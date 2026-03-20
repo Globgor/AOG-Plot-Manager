@@ -40,7 +40,6 @@ public partial class MainWindow : Window
     private PassMonitorWindow? _passMonitorWindow;
 
     // ── State ──
-    private bool _isOnWelcome = true;
     private int _currentStep;
     private readonly SessionService _sessionSvc = new();
     private DispatcherTimer? _healthPollTimer;
@@ -58,7 +57,6 @@ public partial class MainWindow : Window
 
     private void ShowWelcome()
     {
-        _isOnWelcome = true;
         NavBar.IsVisible = false;
 
         _welcomePanel ??= new WelcomePanel();
@@ -72,24 +70,22 @@ public partial class MainWindow : Window
 
     private async void EnterWizard(bool loadProfile)
     {
-        _isOnWelcome = false;
-
         // Ensure step panels are created
         EnsureStepPanels();
 
         if (loadProfile)
         {
-            var dlg = new OpenFileDialog
+            var files = await this.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
             {
-                Filters = { new FileDialogFilter { Name = "Machine Profile", Extensions = { "json" } } },
-                Title   = "Завантажити профіль машини",
-            };
-            var files = await dlg.ShowAsync(this);
-            if (files is { Length: > 0 })
+                Title = "Завантажити профіль машини",
+                AllowMultiple = false,
+                FileTypeFilter = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Machine Profile") { Patterns = new[] { "*.json" } } }
+            });
+            if (files.Count > 0)
             {
                 try
                 {
-                    var loaded = MachineProfile.LoadFromFile(files[0]);
+                    var loaded = MachineProfile.LoadFromFile(files[0].Path.LocalPath);
                     _profileStep!.SetProfile(loaded);
                 }
                 catch (Exception ex)
@@ -267,7 +263,7 @@ public partial class MainWindow : Window
 
         // Auto-save session
         if (currentGrid != null)
-            AutoSaveSession(GridToParams(currentGrid), currentRouting, placedMap.TrialName);
+            AutoSaveSession(GridToParams(currentGrid), currentRouting, placedMap?.TrialName);
     }
 
     private PlotLogger CreateLogger()
@@ -334,19 +330,18 @@ public partial class MainWindow : Window
         }
         catch { /* proceed without grid */ }
 
-        var dlg = new OpenFileDialog
+        var files = await this.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
         {
-            Filters = { new FileDialogFilter { Name = "Machine Profile", Extensions = { "json" } } },
-            Title   = "Завантажити профіль машини (або скасуйте для продовження без профілю)",
-        };
-        var files = await dlg.ShowAsync(this);
-        if (files is { Length: > 0 })
+            Title = "Завантажити профіль машини (або скасуйте для продовження без профілю)",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Machine Profile") { Patterns = new[] { "*.json" } } }
+        });
+        if (files.Count > 0)
         {
-            try { _profileStep!.SetProfile(MachineProfile.LoadFromFile(files[0])); }
+            try { _profileStep!.SetProfile(MachineProfile.LoadFromFile(files[0].Path.LocalPath)); }
             catch { /* ignore */ }
         }
 
-        _isOnWelcome = false;
         NavBar.IsVisible = false;
         SetStatus($"Відновлено сесію: {session.SessionName}");
         LaunchPassMonitor();

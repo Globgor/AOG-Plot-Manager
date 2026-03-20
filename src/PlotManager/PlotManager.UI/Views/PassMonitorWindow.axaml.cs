@@ -14,11 +14,11 @@ namespace PlotManager.UI.Views;
 public partial class PassMonitorWindow : Window
 {
     // ── Core dependencies ──
-    private readonly PlotModeController _plotController;
-    private readonly SensorHub _sensorHub;
-    private readonly SectionController _sectionController;
-    private readonly PassTracker _passTracker;
-    private readonly AogUdpClient _aogClient;
+    private readonly PlotModeController _plotController = null!;
+    private readonly SensorHub _sensorHub = null!;
+    private readonly SectionController _sectionController = null!;
+    private readonly PassTracker _passTracker = null!;
+    private readonly AogUdpClient? _aogClient;
     private readonly PlotGrid? _grid;
     private readonly TrialMap? _trialMap;
 
@@ -29,7 +29,7 @@ public partial class PassMonitorWindow : Window
     private readonly TrialLogger? _trialLogger;
     private readonly IPlotLogger? _logger;
 
-    private readonly DispatcherTimer _pollTimer;
+    private readonly DispatcherTimer? _pollTimer;
     private DateTime _lastGpsTime = DateTime.MinValue;
 
     public bool IsClosed { get; private set; }
@@ -138,7 +138,7 @@ public partial class PassMonitorWindow : Window
     // Trial / Settings / Operations Handlers
     // ════════════════════════════════════════════════════════════════════
 
-    private async void ShowErrorDialog(string title, string msg)
+    private void ShowErrorDialog(string title, string msg)
     {
         // For simplicity, just update trial status or logger if no MessageBox is ready
         _logger?.Error(title, msg);
@@ -230,7 +230,7 @@ public partial class PassMonitorWindow : Window
         _sectionController.ActivateEmergencyStop();
 
         // 2. Send all-zero packet to machine module via AOG channel
-        _aogClient.SendSectionControl(0x0000);
+        _aogClient?.SendSectionControl(0x0000);
 
         // 3. Stop trial recording
         if (_trialLogger?.IsActive == true)
@@ -315,10 +315,10 @@ public partial class PassMonitorWindow : Window
         });
     }
 
-    private async void HandleWeatherFetchRequired()
+    private void HandleWeatherFetchRequired()
     {
         // Called by AutoWeatherService when conditions are met
-        Dispatcher.UIThread.InvokeAsync(async () =>
+        _ = Dispatcher.UIThread.InvokeAsync(async () =>
         {
             var weatherForm = new WeatherSnapshotWindow();
             var result = await weatherForm.ShowDialog<WeatherSnapshot?>(this);

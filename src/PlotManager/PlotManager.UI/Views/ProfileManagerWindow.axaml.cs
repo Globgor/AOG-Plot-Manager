@@ -119,7 +119,7 @@ public partial class ProfileManagerWindow : Window
         Close(true);
     }
 
-    private async void OnDeleteSelected(object? sender, RoutedEventArgs e)
+    private void OnDeleteSelected(object? sender, RoutedEventArgs e)
     {
         if (lstProfiles.SelectedItem is not ProfileListItem item)
         {

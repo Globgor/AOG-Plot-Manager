@@ -107,17 +107,19 @@ public partial class ProfileStepPanelView : UserControl
         var owner = GetParentWindow();
         if (owner == null) return;
 
-        var dlg = new Avalonia.Controls.OpenFileDialog
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
         {
-            Filters = { new Avalonia.Controls.FileDialogFilter { Name = "Machine Profile", Extensions = { "json" } } },
-            Title = "Завантажити профіль машини"
-        };
-        var files = await dlg.ShowAsync(owner);
-        if (files is { Length: > 0 })
+            Title = "Завантажити профіль машини",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Machine Profile") { Patterns = new[] { "*.json" } } }
+        });
+        if (files.Count > 0)
         {
             try
             {
-                var loaded = MachineProfile.LoadFromFile(files[0]);
+                var loaded = MachineProfile.LoadFromFile(files[0].Path.LocalPath);
                 SetProfile(loaded);
                 SaveLastProfilePath(loaded.ProfileName);
             }

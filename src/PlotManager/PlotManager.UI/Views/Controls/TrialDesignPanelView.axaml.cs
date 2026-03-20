@@ -105,20 +105,21 @@ public partial class TrialDesignPanelView : UserControl
             return;
         }
 
-        var dlg = new Avalonia.Controls.SaveFileDialog
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
         {
-            Filters = { new Avalonia.Controls.FileDialogFilter { Name = "Excel Files", Extensions = { "xlsx" } } },
             Title = "Експорт Схеми в Excel",
             DefaultExtension = "xlsx",
-            InitialFileName = "TrialMap.xlsx"
-        };
-        var file = await dlg.ShowAsync(owner);
-        if (!string.IsNullOrEmpty(file))
+            SuggestedFileName = "TrialMap.xlsx",
+            FileTypeChoices = new[] { new Avalonia.Platform.Storage.FilePickerFileType("Excel Files") { Patterns = new[] { "*.xlsx" } } }
+        });
+        if (file != null)
         {
             try
             {
                 var exporter = new TrialExcelExporter();
-                exporter.ExportToExcel(CurrentTrialMap!, CurrentGrid!, file);
+                exporter.ExportToExcel(CurrentTrialMap!, CurrentGrid!, file.Path.LocalPath);
                 await MessageBoxHelper.ShowInfo(owner, "Схему успішно експортовано!");
             }
             catch (Exception ex)
@@ -133,15 +134,16 @@ public partial class TrialDesignPanelView : UserControl
         var owner = GetParentWindow();
         if (owner == null) return;
 
-        var dlg = new Avalonia.Controls.SaveFileDialog
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
         {
-            Filters = { new Avalonia.Controls.FileDialogFilter { Name = "JSON Files", Extensions = { "json" } } },
             Title = "Зберегти Дизайн Досліду",
             DefaultExtension = "json",
-            InitialFileName = "TrialDesign.json"
-        };
-        var file = await dlg.ShowAsync(owner);
-        if (!string.IsNullOrEmpty(file))
+            SuggestedFileName = "TrialDesign.json",
+            FileTypeChoices = new[] { new Avalonia.Platform.Storage.FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } } }
+        });
+        if (file != null)
         {
             try
             {
@@ -157,7 +159,7 @@ public partial class TrialDesignPanelView : UserControl
                     TreatmentsText = TxtTreatments.Text ?? ""
                 };
                 string json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(file, json);
+                File.WriteAllText(file.Path.LocalPath, json);
                 await MessageBoxHelper.ShowInfo(owner, "Дизайн успішно збережено!");
             }
             catch (Exception ex)
@@ -172,17 +174,19 @@ public partial class TrialDesignPanelView : UserControl
         var owner = GetParentWindow();
         if (owner == null) return;
 
-        var dlg = new Avalonia.Controls.OpenFileDialog
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
         {
-            Filters = { new Avalonia.Controls.FileDialogFilter { Name = "JSON Files", Extensions = { "json" } } },
-            Title = "Завантажити Дизайн Досліду"
-        };
-        var files = await dlg.ShowAsync(owner);
-        if (files is { Length: > 0 })
+            Title = "Завантажити Дизайн Досліду",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new Avalonia.Platform.Storage.FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } } }
+        });
+        if (files.Count > 0)
         {
             try
             {
-                string json = File.ReadAllText(files[0]);
+                string json = File.ReadAllText(files[0].Path.LocalPath);
                 var state = JsonSerializer.Deserialize<TrialDesignSaveState>(json);
                 if (state != null)
                 {
