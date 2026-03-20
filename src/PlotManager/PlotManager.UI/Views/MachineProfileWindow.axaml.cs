@@ -315,6 +315,7 @@ public partial class MachineProfileWindow : Window
             YOffsetMeters = 0,
             XOffsetMeters = 0,
             SprayWidthMeters = 0.25,
+            NozzleCount = 1,
             ActivationOverlapPercent = 70,
             DeactivationOverlapPercent = 30,
             ActivationDelayOverrideMs = -1,
@@ -380,6 +381,7 @@ public partial class MachineProfileWindow : Window
         public string YOffsetMeters { get; set; }
         public string XOffsetMeters { get; set; }
         public string SprayWidthMeters { get; set; }
+        public string NozzleCount { get; set; }
         public string ActivationOverlapPercent { get; set; }
         public string DeactivationOverlapPercent { get; set; }
         public string ActivationDelayOverrideMs { get; set; }
@@ -395,6 +397,7 @@ public partial class MachineProfileWindow : Window
             YOffsetMeters = b.YOffsetMeters.ToString("F2");
             XOffsetMeters = b.XOffsetMeters.ToString("F2");
             SprayWidthMeters = b.SprayWidthMeters.ToString("F2");
+            NozzleCount = b.NozzleCount.ToString();
             ActivationOverlapPercent = b.ActivationOverlapPercent.ToString("F0");
             DeactivationOverlapPercent = b.DeactivationOverlapPercent.ToString("F0");
             ActivationDelayOverrideMs = b.ActivationDelayOverrideMs.ToString("F0");
@@ -413,6 +416,7 @@ public partial class MachineProfileWindow : Window
                 YOffsetMeters = double.TryParse(YOffsetMeters, out var y) ? y : 0,
                 XOffsetMeters = double.TryParse(XOffsetMeters, out var x) ? x : 0,
                 SprayWidthMeters = double.TryParse(SprayWidthMeters, out var w) ? w : 0.25,
+                NozzleCount = int.TryParse(NozzleCount, out var nc) ? Math.Max(1, nc) : 1,
                 ActivationOverlapPercent = double.TryParse(ActivationOverlapPercent, out var aop) ? aop : 70,
                 DeactivationOverlapPercent = double.TryParse(DeactivationOverlapPercent, out var dop) ? dop : 30,
                 ActivationDelayOverrideMs = int.TryParse(ActivationDelayOverrideMs, out var actMs) ? actMs : -1,

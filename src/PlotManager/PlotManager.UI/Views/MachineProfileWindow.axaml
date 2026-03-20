@@ -142,6 +142,7 @@
                             <DataGridTextColumn Header="Y (м)" Binding="{Binding YOffsetMeters}" Width="60"/>
                             <DataGridTextColumn Header="X (м)" Binding="{Binding XOffsetMeters}" Width="60"/>
                             <DataGridTextColumn Header="Шир.(м)" Binding="{Binding SprayWidthMeters}" Width="60"/>
+                            <DataGridTextColumn Header="Форс." Binding="{Binding NozzleCount}" Width="50"/>
                             <DataGridTextColumn Header="Акт.%" Binding="{Binding ActivationOverlapPercent}" Width="50"/>
                             <DataGridTextColumn Header="Деакт.%" Binding="{Binding DeactivationOverlapPercent}" Width="60"/>
                             <DataGridTextColumn Header="Акт.мс" Binding="{Binding ActivationDelayOverrideMs}" Width="60"/>

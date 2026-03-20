@@ -86,6 +86,9 @@ public class BoomProfile
     /// <summary>Spray pattern width along driving direction (meters).</summary>
     public double SprayWidthMeters { get; set; } = 0.25;
 
+    /// <summary>Number of nozzles on this boom section.</summary>
+    public int NozzleCount { get; set; } = 1;
+
     /// <summary>Overlap % to activate (0–100).</summary>
     public double ActivationOverlapPercent { get; set; } = 70;
 
@@ -406,10 +409,11 @@ public class MachineProfile
                 ActivationOverlapPercent = bp.ActivationOverlapPercent,
                 DeactivationOverlapPercent = bp.DeactivationOverlapPercent,
                 Enabled = bp.Enabled,
-                Nozzles = new List<Nozzle>
-                {
-                    new Nozzle { NozzleId = 0, XOffsetMeters = 0 },
-                },
+                Nozzles = Enumerable.Range(0, bp.NozzleCount).Select(idx => new Nozzle 
+                { 
+                    NozzleId = idx, 
+                    XOffsetMeters = 0 
+                }).ToList(),
             });
         }
         return setup;
