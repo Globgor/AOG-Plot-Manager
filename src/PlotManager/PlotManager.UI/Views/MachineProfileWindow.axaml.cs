@@ -242,20 +242,20 @@ public partial class MachineProfileWindow : Window
             double requiredPressure = nozzle.GetPressureForFlowRate(requiredFlowPerNozzle);
             double actualRate = RateCalculator.CalculateRateLPerHa(nozzle, requiredPressure, speed, swath, nozzlesPerBoom);
 
-            lblCalcPressure.Text = $"🔧 Потрібний тиск: {requiredPressure:F2} бар";
+            lblCalcPressure.Text = $"🔧 Тиск: {requiredPressure:F2} бар";
             bool pressureOk = nozzle.IsPressureInRange(requiredPressure);
-            lblCalcPressure.Foreground = Avalonia.Media.SolidColorBrush.Parse(pressureOk ? "#4CAF50" : "#F44336");
+            lblCalcPressure.Foreground = Avalonia.Media.SolidColorBrush.Parse(pressureOk ? "#FFFFFF" : "#F44336");
 
-            lblCalcFlowPerNozzle.Text = $"💧 Вилив на форсунку: {requiredFlowPerNozzle:F2} л/хв";
+            lblCalcFlowPerNozzle.Text = $"💧 {requiredFlowPerNozzle:F2} л/хв (1 шт.)";
+            lblCalcActualRate.Text = $"📊 Норма: {actualRate:F1} л/га";
 
             double flowAtRef = nozzle.FlowRateLPerMinAtRef;
             double recommendedSpeed = flowAtRef * 600.0 * nozzlesPerBoom / (targetRate * swath);
 
-            lblCalcRecommendedSpeed.Text = $"🚜 Рекомендована швидкість: {recommendedSpeed:F1} км/год (при {nozzle.ReferencePressureBar:F1} бар)";
+            lblCalcRecommendedSpeed.Text = $"🚜 {recommendedSpeed:F1} км/год";
+            lblCalcRefPressure.Text = $"Рекомендовано для створення\nідеального факела ({nozzle.ReferencePressureBar:F1} бар)";
             bool speedOk = recommendedSpeed >= 2.0 && recommendedSpeed <= 12.0;
             lblCalcRecommendedSpeed.Foreground = Avalonia.Media.SolidColorBrush.Parse(speedOk ? "#4CAF50" : "#FF9800");
-
-            lblCalcActualRate.Text = $"📊 Фактична норма: {actualRate:F1} л/га";
 
             var suggestions = new List<string>();
             foreach (var candidate in _catalog.Nozzles)
@@ -290,6 +290,8 @@ public partial class MachineProfileWindow : Window
             lblCalcPressure.Text = "";
             lblCalcFlowPerNozzle.Text = "";
             lblCalcActualRate.Text = "";
+            lblCalcRecommendedSpeed.Text = "";
+            lblCalcRefPressure.Text = "";
             lblCalcNozzleSuggestion.Text = "";
             lblCalcWarnings.Text = "";
         }

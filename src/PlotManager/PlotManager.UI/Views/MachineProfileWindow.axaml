@@ -91,14 +91,34 @@
                         </Grid>
 
                         <TextBlock Text="📊 Результат розрахунку" FontSize="16" FontWeight="SemiBold" Foreground="#EEEEEE"/>
-                        <StackPanel Spacing="6">
-                            <TextBlock x:Name="lblCalcPressure" FontSize="14" FontWeight="Bold"/>
-                            <TextBlock x:Name="lblCalcFlowPerNozzle" FontSize="14" Foreground="#00BCD4"/>
-                            <TextBlock x:Name="lblCalcRecommendedSpeed" FontSize="14"/>
-                            <TextBlock x:Name="lblCalcActualRate" FontSize="14" Foreground="#00BCD4"/>
-                            <TextBlock x:Name="lblCalcNozzleSuggestion" FontSize="14" TextWrapping="Wrap"/>
-                            <TextBlock x:Name="lblCalcWarnings" FontSize="14" TextWrapping="Wrap"/>
-                        </StackPanel>
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4,0,0">
+                            <!-- Block 1: Цільовий режим -->
+                            <Border Grid.Row="0" Grid.Column="0" Background="#22252E" BorderBrush="#3C4150" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,6,8">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="🎯 ДЛЯ ВАШОЇ ШВИДКОСТІ" FontSize="11" Foreground="#888888" FontWeight="Bold" />
+                                    <TextBlock x:Name="lblCalcPressure" FontSize="16" FontWeight="Bold"/>
+                                    <TextBlock x:Name="lblCalcFlowPerNozzle" FontSize="14" Foreground="#00BCD4"/>
+                                    <TextBlock x:Name="lblCalcActualRate" FontSize="14" Foreground="#4CAF50" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Block 2: Ідеальний режим -->
+                            <Border Grid.Row="0" Grid.Column="1" Background="#1D2A24" BorderBrush="#2E4532" BorderThickness="1" CornerRadius="6" Padding="12" Margin="6,0,0,8">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="🏆 ОПТИМАЛЬНА ШВИДКІСТЬ" FontSize="11" Foreground="#6A9A70" FontWeight="Bold" />
+                                    <TextBlock x:Name="lblCalcRecommendedSpeed" FontSize="16" FontWeight="Bold"/>
+                                    <TextBlock x:Name="lblCalcRefPressure" FontSize="13" Foreground="#81C784" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Block 3: Попередження -->
+                            <TextBlock x:Name="lblCalcWarnings" Grid.Row="1" Grid.ColumnSpan="2" FontSize="14" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            
+                            <!-- Block 4: Альтернативи -->
+                            <Border Grid.Row="2" Grid.ColumnSpan="2" Background="#282C37" BorderBrush="#3C4150" BorderThickness="1" CornerRadius="6" Padding="12">
+                                <TextBlock x:Name="lblCalcNozzleSuggestion" FontSize="14" TextWrapping="Wrap"/>
+                            </Border>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
