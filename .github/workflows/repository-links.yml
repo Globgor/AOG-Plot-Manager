@@ -1,0 +1,43 @@
+name: Repository documentation links
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '13 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-documentation-links
+  cancel-in-progress: false
+
+jobs:
+  links:
+    if: github.repository == 'Globgor/AOG-Plot-Manager'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out default-branch documentation
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Report documentation links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
+        with:
+          args: >-
+            --no-progress
+            --exclude-all-private
+            --max-concurrency 4
+            --max-retries 0
+            --timeout 5
+            --root-dir '${{ github.workspace }}'
+            './**/*.md'
+            './**/*.rst'
+            './.github/REPOSITORY_AUTOMATION.md'
+          fail: false
+          failIfEmpty: false
+          jobSummary: true
+          output: /tmp/repository-links.md
+          token: ''
