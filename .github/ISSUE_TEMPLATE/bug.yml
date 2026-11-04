@@ -1,0 +1,34 @@
+name: Bug report
+description: Report a failure of an existing supported operation.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic examples. Do not attach credentials, personal data, client databases, private source material, or copyrighted scans."
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: "Application build, operating system, firmware version, machine mode, and simulator or hardware context."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Give a minimal synthetic example and the operation being performed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include the exact error and relevant redacted logs, if available.
+    validations:
+      required: true

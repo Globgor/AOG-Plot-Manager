@@ -1,0 +1,38 @@
+name: Repository PR labels
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to label
+        required: true
+        type: number
+
+permissions: {}
+
+concurrency:
+  group: repository-labels-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  label:
+    if: github.repository == 'Globgor/AOG-Plot-Manager' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Label an updated same-repository PR
+        if: github.event_name == 'pull_request'
+        uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d # v6
+        with:
+          sync-labels: false
+      - name: Label a selected PR
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d # v6
+        with:
+          pr-number: ${{ inputs.pr_number }}
+          sync-labels: false

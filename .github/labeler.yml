@@ -1,0 +1,9 @@
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ['docs/**', '**/*.md', '**/*.rst']
+github_actions:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**']
+testing:
+  - changed-files:
+      - any-glob-to-any-file: ['tests/**', 'test/**', 't/**', '**/tests/**', '**/test/**', '**/*Tests/**', 'tools/test_*']
